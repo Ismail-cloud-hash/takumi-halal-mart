@@ -9,14 +9,13 @@ export default function Admin(){
   const [products,setProducts] = useState<any[]>([]);
   const [name,setName] = useState("");
   const [price,setPrice] = useState("");
-  const [stock,setStock] = useState("");
   const [category,setCategory] = useState("");
   const [description,setDescription] = useState("");
   const [file,setFile] = useState<File | null>(null);
 
   async function fetchProducts(){
 
-    const {data} = await supabase
+    const { data } = await supabase
       .from("products")
       .select("*")
       .order("id",{ascending:false});
@@ -39,28 +38,40 @@ export default function Admin(){
 
     const fileName = Date.now()+"-"+file.name;
 
-    await supabase.storage
+    const { error:uploadError } = await supabase.storage
       .from("products")
       .upload(fileName,file);
 
-    const {data} = supabase.storage
+    if(uploadError){
+      console.log(uploadError);
+      alert("Image upload failed");
+      return;
+    }
+
+    const { data } = supabase.storage
       .from("products")
       .getPublicUrl(fileName);
 
-    await supabase
+    const { error } = await supabase
       .from("products")
       .insert([{
         name,
         price:Number(price),
-        stock:Number(stock),
         category,
         description,
         image:data.publicUrl
       }]);
 
+    if(error){
+      console.log(error);
+      alert("Insert failed");
+      return;
+    }
+
+    alert("Product Added");
+
     setName("");
     setPrice("");
-    setStock("");
     setCategory("");
     setDescription("");
     setFile(null);
@@ -86,16 +97,20 @@ export default function Admin(){
 
     <main className="p-10">
 
-      <h1 className="text-3xl font-bold mb-8">
-        Admin Panel
-      </h1>
+      <div className="flex justify-between mb-8">
 
-      <Link href="/" className="bg-gray-700 text-white px-4 py-2 rounded">
-        Back
-      </Link>
+        <h1 className="text-3xl font-bold text-green-700">
+          Admin Panel
+        </h1>
+
+        <Link href="/" className="bg-gray-700 text-white px-4 py-2 rounded">
+          Back
+        </Link>
+
+      </div>
 
 
-      <div className="max-w-md space-y-4 mt-6">
+      <div className="max-w-md space-y-4">
 
         <input
           placeholder="Product Name"
@@ -112,24 +127,11 @@ export default function Admin(){
         />
 
         <input
-          placeholder="Stock"
-          className="w-full p-3 bg-gray-800 rounded"
-          value={stock}
-          onChange={(e)=>setStock(e.target.value)}
-        />
-
-        <select
+          placeholder="Category"
           className="w-full p-3 bg-gray-800 rounded"
           value={category}
           onChange={(e)=>setCategory(e.target.value)}
-        >
-          <option value="">Select Category</option>
-          <option>Rice</option>
-          <option>Meat</option>
-          <option>Vegetable</option>
-          <option>Frozen</option>
-          <option>Grocery</option>
-        </select>
+        />
 
         <input
           placeholder="Description"
@@ -162,39 +164,25 @@ export default function Admin(){
 
         <div
           key={product.id}
-          className="flex justify-between items-center bg-gray-900 p-4 mb-3 rounded"
+          className="flex justify-between bg-gray-900 p-4 mb-3 rounded"
         >
 
           <div>
 
-            <p className="font-bold">
-              {product.name}
-            </p>
+            <p className="font-bold">{product.name}</p>
 
             <p className="text-gray-400">
-              ¥{product.price} | Stock: {product.stock}
+              ¥{product.price}
             </p>
 
           </div>
 
-
-          <div className="flex gap-2">
-
-            <Link
-              href={`/admin/edit/${product.id}`}
-              className="bg-blue-600 px-4 py-2 rounded"
-            >
-              Edit
-            </Link>
-
-            <button
-              onClick={()=>deleteProduct(product.id)}
-              className="bg-red-600 px-4 py-2 rounded"
-            >
-              Delete
-            </button>
-
-          </div>
+          <button
+            onClick={()=>deleteProduct(product.id)}
+            className="bg-red-600 px-4 py-2 rounded"
+          >
+            Delete
+          </button>
 
         </div>
 

@@ -12,14 +12,12 @@ export default function EditProduct(){
 
   const [name,setName] = useState("");
   const [price,setPrice] = useState("");
-  const [category,setCategory] = useState("");
-  const [description,setDescription] = useState("");
 
   useEffect(()=>{
 
     async function fetchProduct(){
 
-      const {data} = await supabase
+      const { data } = await supabase
         .from("products")
         .select("*")
         .eq("id",id)
@@ -28,8 +26,6 @@ export default function EditProduct(){
       if(data){
         setName(data.name);
         setPrice(data.price);
-        setCategory(data.category);
-        setDescription(data.description);
       }
 
     }
@@ -45,9 +41,7 @@ export default function EditProduct(){
       .from("products")
       .update({
         name,
-        price,
-        category,
-        description
+        price:Number(price)
       })
       .eq("id",id);
 
@@ -76,18 +70,6 @@ export default function EditProduct(){
         className="w-full p-3 bg-gray-800 rounded mb-3"
         value={price}
         onChange={(e)=>setPrice(e.target.value)}
-      />
-
-      <input
-        className="w-full p-3 bg-gray-800 rounded mb-3"
-        value={category}
-        onChange={(e)=>setCategory(e.target.value)}
-      />
-
-      <input
-        className="w-full p-3 bg-gray-800 rounded mb-3"
-        value={description}
-        onChange={(e)=>setDescription(e.target.value)}
       />
 
       <button

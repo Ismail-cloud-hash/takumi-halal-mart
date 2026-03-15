@@ -15,7 +15,7 @@ export default function ProductPage(){
 
     async function fetchProduct(){
 
-      const {data} = await supabase
+      const { data } = await supabase
         .from("products")
         .select("*")
         .eq("id",id)
@@ -37,7 +37,7 @@ export default function ProductPage(){
 
   return(
 
-    <main className="p-10 max-w-3xl mx-auto">
+    <main className="p-10">
 
       <img
         src={product.image}
@@ -52,7 +52,7 @@ export default function ProductPage(){
         ¥{product.price}
       </p>
 
-      <p className="mt-4 text-gray-300">
+      <p className="mt-4">
         {product.description}
       </p>
 
