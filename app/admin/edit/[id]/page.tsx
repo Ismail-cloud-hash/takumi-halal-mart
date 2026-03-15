@@ -9,10 +9,11 @@ export default function EditProduct(){
 
   const params = useParams();
   const router = useRouter();
-  const id = params.id;
+
+  const id = Number(params.id);
 
   const [name,setName] = useState("");
-  const [price,setPrice] = useState("");
+  const [price,setPrice] = useState<number | string>("");
   const [category,setCategory] = useState("");
   const [description,setDescription] = useState("");
   const [image,setImage] = useState("");
@@ -22,11 +23,16 @@ export default function EditProduct(){
 
     async function fetchProduct(){
 
-      const {data} = await supabase
+      const {data,error} = await supabase
         .from("products")
         .select("*")
-        .eq("id",id)
+        .eq("id", id)
         .single();
+
+      if(error){
+        console.log(error);
+        return;
+      }
 
       if(data){
         setName(data.name);
@@ -38,7 +44,9 @@ export default function EditProduct(){
 
     }
 
-    fetchProduct();
+    if(id){
+      fetchProduct();
+    }
 
   },[id]);
 
@@ -68,16 +76,22 @@ export default function EditProduct(){
 
     }
 
-    await supabase
+    const {error} = await supabase
       .from("products")
       .update({
         name,
-        price,
+        price:Number(price),
         category,
         description,
         image:imageUrl
       })
-      .eq("id",id);
+      .eq("id", id);
+
+    if(error){
+      alert("Update failed");
+      console.log(error);
+      return;
+    }
 
     alert("Product Updated");
 
@@ -97,24 +111,41 @@ export default function EditProduct(){
 
       <input
         className="w-full p-3 bg-gray-800 rounded mb-3"
+        placeholder="Product Name"
         value={name}
         onChange={(e)=>setName(e.target.value)}
       />
 
       <input
+        type="number"
         className="w-full p-3 bg-gray-800 rounded mb-3"
+        placeholder="Price"
         value={price}
         onChange={(e)=>setPrice(e.target.value)}
       />
 
-      <input
+
+      {/* CATEGORY SELECT */}
+
+      <select
         className="w-full p-3 bg-gray-800 rounded mb-3"
         value={category}
         onChange={(e)=>setCategory(e.target.value)}
-      />
+      >
+
+        <option value="">Select Category</option>
+        <option value="Rice">Rice</option>
+        <option value="Meat">Meat</option>
+        <option value="Vegetable">Vegetable</option>
+        <option value="Frozen">Frozen</option>
+        <option value="Grocery">Grocery</option>
+
+      </select>
+
 
       <input
         className="w-full p-3 bg-gray-800 rounded mb-3"
+        placeholder="Description"
         value={description}
         onChange={(e)=>setDescription(e.target.value)}
       />
@@ -124,10 +155,12 @@ export default function EditProduct(){
 
       <p className="mt-4 mb-2">Current Image</p>
 
-      <img
-        src={image}
-        className="w-32 rounded mb-4"
-      />
+      {image && (
+        <img
+          src={image}
+          className="w-32 rounded mb-4"
+        />
+      )}
 
 
       {/* NEW IMAGE */}
@@ -161,6 +194,6 @@ export default function EditProduct(){
 
     </main>
 
-  )
+  );
 
 }
