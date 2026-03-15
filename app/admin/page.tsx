@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
+import Link from "next/link";
 
 export default function Admin(){
 
@@ -12,15 +13,18 @@ export default function Admin(){
   const [file,setFile]=useState<File | null>(null);
 
   const [products,setProducts]=useState<any[]>([]);
+  const [loading,setLoading]=useState(false);
 
   async function fetchProducts(){
 
-    const {data}=await supabase
+    const {data,error}=await supabase
       .from("products")
       .select("*")
       .order("id",{ascending:false});
 
-    setProducts(data || []);
+    if(!error){
+      setProducts(data || []);
+    }
 
   }
 
@@ -35,6 +39,8 @@ export default function Admin(){
       return;
     }
 
+    setLoading(true);
+
     const fileName=Date.now()+"-"+file.name;
 
     const {error:uploadError}=await supabase.storage
@@ -43,6 +49,7 @@ export default function Admin(){
 
     if(uploadError){
       alert("Image upload failed");
+      setLoading(false);
       return;
     }
 
@@ -67,12 +74,17 @@ export default function Admin(){
     setCategory("");
     setDescription("");
     setFile(null);
+    setLoading(false);
 
     fetchProducts();
 
   }
 
   async function deleteProduct(id:number){
+
+    const confirmDelete = confirm("Delete this product?");
+
+    if(!confirmDelete) return;
 
     await supabase
       .from("products")
@@ -93,9 +105,9 @@ export default function Admin(){
           Admin Panel
         </h1>
 
-        <a href="/" className="bg-gray-700 text-white px-4 py-2 rounded">
+        <Link href="/" className="bg-gray-700 text-white px-4 py-2 rounded">
           Back to Store
-        </a>
+        </Link>
 
       </div>
 
@@ -123,11 +135,11 @@ export default function Admin(){
           onChange={(e)=>setCategory(e.target.value)}
         >
           <option value="">Select Category</option>
-          <option value="Rice">Rice</option>
-          <option value="Meat">Meat</option>
-          <option value="Vegetable">Vegetable</option>
-          <option value="Frozen">Frozen</option>
-          <option value="Grocery">Grocery</option>
+          <option>Rice</option>
+          <option>Meat</option>
+          <option>Vegetable</option>
+          <option>Frozen</option>
+          <option>Grocery</option>
         </select>
 
         <input
@@ -151,9 +163,10 @@ export default function Admin(){
 
         <button
           onClick={addProduct}
+          disabled={loading}
           className="bg-green-600 w-full py-3 rounded"
         >
-          Add Product
+          {loading ? "Adding..." : "Add Product"}
         </button>
 
       </div>
@@ -192,12 +205,23 @@ export default function Admin(){
 
           </div>
 
-          <button
-            onClick={()=>deleteProduct(product.id)}
-            className="bg-red-600 px-4 py-2 rounded"
-          >
-            Delete
-          </button>
+          <div className="flex gap-2">
+
+            <Link
+              href={`/admin/edit/${product.id}`}
+              className="bg-blue-600 px-4 py-2 rounded"
+            >
+              Edit
+            </Link>
+
+            <button
+              onClick={()=>deleteProduct(product.id)}
+              className="bg-red-600 px-4 py-2 rounded"
+            >
+              Delete
+            </button>
+
+          </div>
 
         </div>
 
