@@ -56,10 +56,6 @@ export default function ProductPage(){
         {product.description}
       </p>
 
-      <p className="mt-3">
-        Stock: {product.stock}
-      </p>
-
     </main>
 
   );

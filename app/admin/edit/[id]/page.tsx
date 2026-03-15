@@ -12,7 +12,6 @@ export default function EditProduct(){
 
   const [name,setName] = useState("");
   const [price,setPrice] = useState("");
-  const [stock,setStock] = useState("");
   const [category,setCategory] = useState("");
   const [description,setDescription] = useState("");
 
@@ -29,7 +28,6 @@ export default function EditProduct(){
       if(data){
         setName(data.name);
         setPrice(data.price);
-        setStock(data.stock);
         setCategory(data.category);
         setDescription(data.description);
       }
@@ -47,8 +45,7 @@ export default function EditProduct(){
       .from("products")
       .update({
         name,
-        price:Number(price),
-        stock:Number(stock),
+        price,
         category,
         description
       })
@@ -83,8 +80,14 @@ export default function EditProduct(){
 
       <input
         className="w-full p-3 bg-gray-800 rounded mb-3"
-        value={stock}
-        onChange={(e)=>setStock(e.target.value)}
+        value={category}
+        onChange={(e)=>setCategory(e.target.value)}
+      />
+
+      <input
+        className="w-full p-3 bg-gray-800 rounded mb-3"
+        value={description}
+        onChange={(e)=>setDescription(e.target.value)}
       />
 
       <button

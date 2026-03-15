@@ -1,50 +1,32 @@
 "use client";
 
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Home(){
+export default function Home() {
 
   const [products,setProducts] = useState<any[]>([]);
-  const [search,setSearch] = useState("");
-  const [category,setCategory] = useState("All");
   const [loading,setLoading] = useState(true);
 
   useEffect(()=>{
 
     async function fetchProducts(){
 
-      const {data,error} = await supabase
+      const { data } = await supabase
         .from("products")
         .select("*")
         .order("id",{ascending:false});
 
-      if(!error){
-        setProducts(data || []);
-      }
-
+      setProducts(data || []);
       setLoading(false);
+
     }
 
     fetchProducts();
 
   },[]);
-
-
-  const filteredProducts = products.filter((p)=>{
-
-    const matchCategory =
-      category==="All" ||
-      p.category?.toLowerCase()===category.toLowerCase();
-
-    const matchSearch =
-      p.name?.toLowerCase().includes(search.toLowerCase());
-
-    return matchCategory && matchSearch;
-
-  });
 
 
   if(loading){
@@ -83,38 +65,9 @@ export default function Home(){
       </div>
 
 
-      <input
-        placeholder="Search products..."
-        className="w-full p-3 bg-gray-800 rounded mb-6"
-        value={search}
-        onChange={(e)=>setSearch(e.target.value)}
-      />
-
-
-      <div className="flex flex-wrap gap-3 mb-8">
-
-        {["All","Rice","Meat","Vegetable","Frozen","Grocery"].map((cat)=>(
-
-          <button
-            key={cat}
-            onClick={()=>setCategory(cat)}
-            className={`px-4 py-2 rounded ${
-              category===cat
-                ? "bg-green-600 text-white"
-                : "bg-gray-700 text-white"
-            }`}
-          >
-            {cat}
-          </button>
-
-        ))}
-
-      </div>
-
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {filteredProducts.map((product)=>(
+        {products.map((product)=>(
 
           <div key={product.id} className="border rounded-lg p-4">
 
@@ -135,25 +88,13 @@ export default function Home(){
               ¥{product.price}
             </p>
 
-            {product.stock > 0 ? (
-              <p className="text-sm text-gray-400">
-                Stock: {product.stock}
-              </p>
-            ) : (
-              <p className="text-red-500 font-bold">
-                Out of Stock
-              </p>
-            )}
-
-            {product.stock > 0 && (
-              <a
-                href={`https://wa.me/94742440640?text=I want to order ${encodeURIComponent(product.name)}`}
-                target="_blank"
-                className="bg-green-600 text-white px-4 py-2 mt-3 inline-block rounded"
-              >
-                Order on WhatsApp
-              </a>
-            )}
+            <a
+              href={`https://wa.me/94742440640?text=I want to order ${product.name}`}
+              target="_blank"
+              className="bg-green-600 text-white px-4 py-2 mt-3 inline-block rounded"
+            >
+              Order on WhatsApp
+            </a>
 
           </div>
 
