@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
 
@@ -24,7 +26,6 @@ export default function Home() {
       }
 
       setLoading(false);
-
     }
 
     fetchProducts();
@@ -56,16 +57,27 @@ export default function Home() {
 
       <div className="flex justify-between items-center mb-8">
 
-        <h1 className="text-3xl font-bold text-green-700">
-          Takumi Halal Mart
-        </h1>
+        <div className="flex items-center gap-3">
 
-        <a
+          <Image
+            src="/logo.png"
+            alt="Takumi Halal Mart"
+            width={40}
+            height={40}
+          />
+
+          <h1 className="text-3xl font-bold text-green-700">
+            Takumi Halal Mart
+          </h1>
+
+        </div>
+
+        <Link
           href="/admin"
           className="bg-green-600 text-white px-4 py-2 rounded"
         >
           Admin
-        </a>
+        </Link>
 
       </div>
 
@@ -102,13 +114,17 @@ export default function Home() {
 
       {/* PRODUCTS */}
 
+      {filteredProducts.length === 0 && (
+        <p>No products found</p>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {filteredProducts.map((product)=>(
 
           <div key={product.id} className="border rounded-lg p-4">
 
-            <a href={`/product/${product.id}`}>
+            <Link href={`/product/${product.id}`}>
 
               <img
                 src={product.image}
@@ -120,7 +136,7 @@ export default function Home() {
                 {product.name}
               </h2>
 
-            </a>
+            </Link>
 
             <p className="text-green-600">
               ¥{product.price}
@@ -141,5 +157,6 @@ export default function Home() {
       </div>
 
     </main>
+
   );
 }
