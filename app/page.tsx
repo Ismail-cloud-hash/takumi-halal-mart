@@ -7,36 +7,38 @@ import Link from "next/link";
 
 export default function Home() {
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [products,setProducts] = useState<any[]>([]);
+  const [search,setSearch] = useState("");
+  const [category,setCategory] = useState("All");
+  const [loading,setLoading] = useState(true);
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    async function fetchProducts() {
+    async function fetchProducts(){
 
-      const { data, error } = await supabase
+      const {data,error} = await supabase
         .from("products")
         .select("*")
-        .order("id", { ascending: false });
+        .order("id",{ascending:false});
 
-      if (!error) {
+      if(!error){
         setProducts(data || []);
       }
 
       setLoading(false);
+
     }
 
     fetchProducts();
 
-  }, []);
+  },[]);
 
-  const filteredProducts = products.filter((p) => {
+
+  const filteredProducts = products.filter((p)=>{
 
     const matchCategory =
-      category === "All" ||
-      p.category?.toLowerCase() === category.toLowerCase();
+      category==="All" ||
+      p.category?.toLowerCase()===category.toLowerCase();
 
     const matchSearch =
       p.name?.toLowerCase().includes(search.toLowerCase());
@@ -45,15 +47,15 @@ export default function Home() {
 
   });
 
-  if (loading) {
+
+  if(loading){
     return <p className="p-10">Loading products...</p>;
   }
 
-  return (
+
+  return(
 
     <main className="p-10">
-
-      {/* HEADER */}
 
       <div className="flex justify-between items-center mb-8">
 
@@ -81,21 +83,19 @@ export default function Home() {
 
       </div>
 
-      {/* SEARCH */}
 
       <input
         placeholder="Search products..."
         className="w-full p-3 bg-gray-800 rounded mb-6"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e)=>setSearch(e.target.value)}
       />
 
-      {/* CATEGORY */}
 
       <div className="flex flex-wrap gap-3 mb-8">
 
         {["All","Rice","Meat","Vegetable","Frozen","Grocery"].map((cat)=>(
-          
+
           <button
             key={cat}
             onClick={()=>setCategory(cat)}
@@ -112,11 +112,11 @@ export default function Home() {
 
       </div>
 
-      {/* PRODUCTS */}
 
-      {filteredProducts.length === 0 && (
+      {filteredProducts.length===0 && (
         <p>No products found</p>
       )}
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -159,4 +159,5 @@ export default function Home() {
     </main>
 
   );
+
 }

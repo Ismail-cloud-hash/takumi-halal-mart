@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState,useEffect } from "react";
 import { supabase } from "../../supabase";
 import Link from "next/link";
 
 export default function Admin(){
 
-  const [name,setName]=useState("");
-  const [price,setPrice]=useState("");
-  const [category,setCategory]=useState("");
-  const [description,setDescription]=useState("");
-  const [file,setFile]=useState<File | null>(null);
+  const [products,setProducts] = useState<any[]>([]);
+  const [name,setName] = useState("");
+  const [price,setPrice] = useState("");
+  const [category,setCategory] = useState("");
+  const [description,setDescription] = useState("");
+  const [file,setFile] = useState<File | null>(null);
+  const [loading,setLoading] = useState(false);
 
-  const [products,setProducts]=useState<any[]>([]);
-  const [loading,setLoading]=useState(false);
 
   async function fetchProducts(){
 
-    const {data,error}=await supabase
+    const {data,error} = await supabase
       .from("products")
       .select("*")
       .order("id",{ascending:false});
@@ -32,6 +32,7 @@ export default function Admin(){
     fetchProducts();
   },[]);
 
+
   async function addProduct(){
 
     if(!file){
@@ -41,33 +42,31 @@ export default function Admin(){
 
     setLoading(true);
 
-    const fileName=Date.now()+"-"+file.name;
+    const fileName = Date.now()+"-"+file.name;
 
-    const {error:uploadError}=await supabase.storage
+    const {error:uploadError} = await supabase.storage
       .from("products")
       .upload(fileName,file);
 
     if(uploadError){
-      alert("Image upload failed");
+      alert("Upload failed");
       setLoading(false);
       return;
     }
 
-    const {data}=supabase.storage
+    const {data} = supabase.storage
       .from("products")
       .getPublicUrl(fileName);
 
     await supabase
       .from("products")
-      .insert([
-        {
-          name,
-          price,
-          category,
-          description,
-          image:data.publicUrl
-        }
-      ]);
+      .insert([{
+        name,
+        price,
+        category,
+        description,
+        image:data.publicUrl
+      }]);
 
     setName("");
     setPrice("");
@@ -80,10 +79,10 @@ export default function Admin(){
 
   }
 
+
   async function deleteProduct(id:number){
 
     const confirmDelete = confirm("Delete this product?");
-
     if(!confirmDelete) return;
 
     await supabase
@@ -94,6 +93,7 @@ export default function Admin(){
     fetchProducts();
 
   }
+
 
   return(
 
@@ -110,6 +110,7 @@ export default function Admin(){
         </Link>
 
       </div>
+
 
       {/* ADD PRODUCT */}
 
@@ -171,11 +172,11 @@ export default function Admin(){
 
       </div>
 
-      {/* PRODUCT LIST */}
 
       <h2 className="text-2xl mt-12 mb-6">
         Product List
       </h2>
+
 
       {products.map((product)=>(
 
@@ -204,6 +205,7 @@ export default function Admin(){
             </div>
 
           </div>
+
 
           <div className="flex gap-2">
 

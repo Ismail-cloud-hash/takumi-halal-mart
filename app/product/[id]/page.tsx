@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { supabase } from "../../../supabase";
 import { useParams } from "next/navigation";
 
 export default function ProductPage(){
 
-  const params=useParams();
-  const id=params.id;
+  const params = useParams();
+  const id = params.id;
 
-  const [product,setProduct]=useState<any>(null);
+  const [product,setProduct] = useState<any>(null);
 
   useEffect(()=>{
 
     async function fetchProduct(){
 
-      const {data}=await supabase
+      const {data} = await supabase
         .from("products")
         .select("*")
         .eq("id",id)
@@ -29,9 +29,11 @@ export default function ProductPage(){
 
   },[id]);
 
+
   if(!product){
     return <p className="p-10">Loading...</p>;
   }
+
 
   return(
 
