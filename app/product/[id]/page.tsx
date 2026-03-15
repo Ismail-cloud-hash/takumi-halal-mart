@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 export default function ProductPage(){
 
   const params = useParams();
-  const id = params.id;
+  const id = Number(params.id);
 
   const [product,setProduct] = useState<any>(null);
 
@@ -39,13 +39,9 @@ export default function ProductPage(){
 
     <main className="p-10 max-w-3xl mx-auto">
 
-      <a href="/" className="bg-gray-700 text-white px-4 py-2 rounded">
-        Back
-      </a>
-
       <img
         src={product.image}
-        className="w-full h-80 object-cover rounded mt-6"
+        className="w-full h-80 object-cover rounded"
       />
 
       <h1 className="text-3xl font-bold mt-6">
@@ -60,12 +56,9 @@ export default function ProductPage(){
         {product.description}
       </p>
 
-      <a
-        href={`https://wa.me/94742440640?text=I want to order ${encodeURIComponent(product.name)}`}
-        className="bg-green-600 text-white px-6 py-3 rounded mt-6 inline-block"
-      >
-        Order on WhatsApp
-      </a>
+      <p className="mt-3">
+        Stock: {product.stock}
+      </p>
 
     </main>
 

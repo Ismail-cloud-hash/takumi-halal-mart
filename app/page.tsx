@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { supabase } from "../supabase";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Home() {
+export default function Home(){
 
   const [products,setProducts] = useState<any[]>([]);
   const [search,setSearch] = useState("");
@@ -26,7 +26,6 @@ export default function Home() {
       }
 
       setLoading(false);
-
     }
 
     fetchProducts();
@@ -113,11 +112,6 @@ export default function Home() {
       </div>
 
 
-      {filteredProducts.length===0 && (
-        <p>No products found</p>
-      )}
-
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {filteredProducts.map((product)=>(
@@ -128,7 +122,6 @@ export default function Home() {
 
               <img
                 src={product.image}
-                alt={product.name}
                 className="w-full h-40 object-cover rounded"
               />
 
@@ -142,13 +135,25 @@ export default function Home() {
               ¥{product.price}
             </p>
 
-            <a
-              href={`https://wa.me/94742440640?text=I want to order ${encodeURIComponent(product.name)}`}
-              target="_blank"
-              className="bg-green-600 text-white px-4 py-2 mt-3 inline-block rounded"
-            >
-              Order on WhatsApp
-            </a>
+            {product.stock > 0 ? (
+              <p className="text-sm text-gray-400">
+                Stock: {product.stock}
+              </p>
+            ) : (
+              <p className="text-red-500 font-bold">
+                Out of Stock
+              </p>
+            )}
+
+            {product.stock > 0 && (
+              <a
+                href={`https://wa.me/94742440640?text=I want to order ${encodeURIComponent(product.name)}`}
+                target="_blank"
+                className="bg-green-600 text-white px-4 py-2 mt-3 inline-block rounded"
+              >
+                Order on WhatsApp
+              </a>
+            )}
 
           </div>
 
