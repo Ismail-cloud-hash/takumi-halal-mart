@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import Link from "next/link";
-import { addToCart } from "../lib/cart";
+import { addToCart, getCartCount } from "../lib/cart";
 
 export default function Home() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     fetchProducts();
+    setCartCount(getCartCount());
   }, []);
 
   async function fetchProducts() {
@@ -26,20 +28,38 @@ export default function Home() {
   return (
     <main className="p-6">
 
-      <div className="flex justify-between mb-6">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+
         <h1 className="text-3xl text-green-500 font-bold">
           Takumi Halal Mart
         </h1>
 
-        <Link href="/cart" className="bg-green-600 px-4 py-2 rounded">
-          Cart 🛒
-        </Link>
+        <div className="flex gap-4 items-center">
 
-        <Link href="/login" className="bg-gray-700 px-4 py-2 rounded">
-          Admin ⚙️
-        </Link>
+          {/* CART */}
+          <Link href="/cart" className="relative bg-green-600 px-4 py-2 rounded">
+
+            Cart 🛒
+
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-xs px-2 py-1 rounded-full">
+                {cartCount}
+              </span>
+            )}
+
+          </Link>
+
+          {/* ADMIN */}
+          <Link href="/login" className="bg-gray-700 px-4 py-2 rounded">
+            Admin ⚙️
+          </Link>
+
+        </div>
+
       </div>
 
+      {/* SEARCH */}
       <input
         placeholder="Search products..."
         className="w-full p-3 mb-6 bg-gray-800 rounded"
@@ -47,6 +67,7 @@ export default function Home() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
+      {/* PRODUCTS */}
       <div className="grid md:grid-cols-3 gap-6">
 
         {products
@@ -77,6 +98,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   addToCart(product);
+                  setCartCount(getCartCount()); // 🔥 update badge
                   alert("Added to cart 🛒");
                 }}
                 className="mt-2 w-full bg-green-600 py-2 rounded"

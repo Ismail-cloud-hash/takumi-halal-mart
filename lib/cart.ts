@@ -35,3 +35,12 @@ export function getCartTotal() {
     0
   );
 }
+
+// 🔥 NEW FUNCTION
+export function getCartCount() {
+  const cart = getCart();
+  return cart.reduce(
+    (total: number, item: any) => total + item.quantity,
+    0
+  );
+}
