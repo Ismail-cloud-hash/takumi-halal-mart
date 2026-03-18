@@ -34,6 +34,10 @@ export default function Home() {
         <Link href="/cart" className="bg-green-600 px-4 py-2 rounded">
           Cart 🛒
         </Link>
+
+        <Link href="/admin" className="bg-gray-700 px-4 py-2 rounded">
+         Admin ⚙️
+        </Link>
       </div>
 
       <input
