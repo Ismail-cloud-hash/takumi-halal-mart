@@ -10,7 +10,14 @@ export default function Admin() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+
+  // PRODUCTS
   const [products, setProducts] = useState<any[]>([]);
+
+  // ORDERS
+  const [orders, setOrders] = useState<any[]>([]);
+
+  // FORM
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
@@ -30,6 +37,7 @@ export default function Admin() {
     } else {
       setLoading(false);
       fetchProducts();
+      fetchOrders(); // 🔥 NEW
     }
   }
 
@@ -41,6 +49,16 @@ export default function Admin() {
       .order("id", { ascending: false });
 
     setProducts(data || []);
+  }
+
+  // 📦 FETCH ORDERS
+  async function fetchOrders() {
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .order("id", { ascending: false });
+
+    setOrders(data || []);
   }
 
   // ➕ ADD PRODUCT
@@ -106,7 +124,7 @@ export default function Admin() {
     router.push("/login");
   }
 
-  // ⏳ LOADING STATE
+  // ⏳ LOADING
   if (loading) {
     return <p className="p-10">Checking access...</p>;
   }
@@ -122,7 +140,6 @@ export default function Admin() {
         </h1>
 
         <div className="flex gap-3">
-
           <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
             Home
           </Link>
@@ -133,12 +150,11 @@ export default function Admin() {
           >
             Logout
           </button>
-
         </div>
 
       </div>
 
-      {/* ADD PRODUCT FORM */}
+      {/* ADD PRODUCT */}
       <div className="max-w-md space-y-4">
 
         <input
@@ -183,9 +199,9 @@ export default function Admin() {
 
       </div>
 
-      {/* PRODUCT LIST */}
+      {/* PRODUCTS */}
       <h2 className="text-2xl mt-10 mb-4">
-        Product List
+        Products 🛍️
       </h2>
 
       {products.map((product) => (
@@ -193,7 +209,6 @@ export default function Admin() {
           key={product.id}
           className="flex justify-between bg-gray-900 p-4 mb-3 rounded"
         >
-
           <div>
             <p className="font-bold">{product.name}</p>
             <p>¥{product.price}</p>
@@ -205,7 +220,25 @@ export default function Admin() {
           >
             Delete
           </button>
+        </div>
+      ))}
 
+      {/* ORDERS */}
+      <h2 className="text-2xl mt-10 mb-4">
+        Orders 📦
+      </h2>
+
+      {orders.map((order) => (
+        <div
+          key={order.id}
+          className="bg-gray-900 p-4 mb-3 rounded"
+        >
+          <p><strong>Name:</strong> {order.name}</p>
+          <p><strong>Phone:</strong> {order.phone}</p>
+          <p><strong>Address:</strong> {order.address}</p>
+          <p className="text-green-500">
+            Total: ¥{order.total}
+          </p>
         </div>
       ))}
 
