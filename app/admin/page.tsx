@@ -30,14 +30,14 @@ export default function Admin() {
   }, []);
 
   async function checkUser() {
-    const { data } = await supabase.auth.getUser();
+    const isAdmin = localStorage.getItem("admin");
 
-    if (!data.user) {
+    if (!isAdmin) {
       router.push("/login");
     } else {
       setLoading(false);
       fetchProducts();
-      fetchOrders(); // 🔥 NEW
+      fetchOrders();
     }
   }
 

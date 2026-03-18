@@ -21,19 +21,14 @@ export default function CheckoutPage() {
   async function placeOrder() {
 
     if (!name || !phone || !address) {
-      alert("Fill all fields");
+      alert("Fill all fields ❌");
       return;
     }
 
     const total = getCartTotal();
 
     const { error } = await supabase.from("orders").insert([
-      {
-        name,
-        phone,
-        address,
-        total,
-      },
+      { name, phone, address, total }
     ]);
 
     if (error) {
@@ -41,53 +36,51 @@ export default function CheckoutPage() {
       return;
     }
 
+    // ✅ CLEAR CART
     localStorage.removeItem("cart");
 
-    alert("Order placed successfully ✅");
-
-    router.push("/");
+    // ✅ REDIRECT TO SUCCESS PAGE
+    router.push("/success");
   }
 
   return (
-    <main className="p-10 max-w-xl mx-auto">
+    <main className="p-10 max-w-xl mx-auto bg-white min-h-screen text-black">
 
-      <h1 className="text-3xl font-bold mb-6">
+      <h1 className="text-3xl font-bold mb-6 text-green-700">
         Checkout 💳
       </h1>
 
-      {/* FORM */}
       <div className="space-y-4">
 
         <input
           placeholder="Your Name"
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 border rounded"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
         <input
           placeholder="Phone Number"
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 border rounded"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
 
         <textarea
           placeholder="Address"
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 border rounded"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
 
       </div>
 
-      {/* CART SUMMARY */}
-      <div className="mt-6 bg-gray-900 p-4 rounded">
+      <div className="mt-6 p-4 border rounded">
 
         <h2 className="text-xl mb-3">Order Summary</h2>
 
         {cart.map((item) => (
-          <div key={item.id} className="flex justify-between mb-2">
+          <div key={item.id} className="flex justify-between">
             <p>{item.name} x {item.quantity}</p>
             <p>¥{item.price * item.quantity}</p>
           </div>
@@ -101,7 +94,7 @@ export default function CheckoutPage() {
 
       <button
         onClick={placeOrder}
-        className="mt-6 w-full bg-green-600 py-3 rounded"
+        className="mt-6 w-full bg-green-600 text-white py-3 rounded"
       >
         Place Order
       </button>
