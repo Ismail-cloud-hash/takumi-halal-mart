@@ -4,79 +4,95 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import Link from "next/link";
 
-export default function Home(){
+export default function Home() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
 
-  const [products,setProducts] = useState<any[]>([]);
-
-  useEffect(()=>{
-
-    async function fetchProducts(){
-
+  useEffect(() => {
+    async function fetchProducts() {
       const { data } = await supabase
         .from("products")
         .select("*")
-        .order("id",{ascending:false});
+        .order("id", { ascending: false });
 
       setProducts(data || []);
-
     }
 
     fetchProducts();
+  }, []);
 
-  },[]);
+  return (
+    <main className="p-6">
 
-
-  return(
-
-    <main className="p-10">
-
-      <div className="flex justify-between mb-8">
-
-        <h1 className="text-3xl font-bold text-green-700">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-green-500">
           Takumi Halal Mart
         </h1>
 
         <Link
           href="/admin"
-          className="bg-green-600 text-white px-4 py-2 rounded"
+          className="bg-green-600 px-4 py-2 rounded text-white"
         >
           Admin
         </Link>
-
       </div>
 
+      {/* HERO */}
+      <div className="mb-8 rounded-xl overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1606787366850-de6330128bfc"
+          className="w-full h-60 object-cover"
+        />
+      </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      {/* SEARCH */}
+      <input
+        placeholder="Search products..."
+        className="w-full p-3 mb-6 rounded bg-gray-800"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-        {products.map((product)=>(
+      {/* PRODUCTS */}
+      <div className="grid md:grid-cols-3 gap-6">
 
-          <div key={product.id} className="border p-4 rounded">
+        {products
+          .filter((p) =>
+            p.name.toLowerCase().includes(search.toLowerCase())
+          )
+          .map((product) => (
 
-            <Link href={`/product/${product.id}`}>
+            <div
+              key={product.id}
+              className="bg-gray-900 rounded-xl overflow-hidden shadow hover:scale-105 transition"
+            >
 
-              <img
-                src={product.image}
-                className="w-full h-40 object-cover rounded"
-              />
+              <Link href={`/product/${product.id}`}>
 
-              <h2 className="font-bold mt-3">
-                {product.name}
-              </h2>
+                <img
+                  src={product.image}
+                  className="w-full h-48 object-cover"
+                />
 
-            </Link>
+                <div className="p-4">
+                  <h2 className="text-lg font-semibold">
+                    {product.name}
+                  </h2>
 
-            <p className="text-green-600">
-              ¥{product.price}
-            </p>
+                  <p className="text-green-500 font-bold mt-2">
+                    ¥{product.price}
+                  </p>
+                </div>
 
-          </div>
+              </Link>
 
-        ))}
+            </div>
+
+          ))}
 
       </div>
 
     </main>
-
   );
-
 }
