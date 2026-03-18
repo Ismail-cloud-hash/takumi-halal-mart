@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../supabase";
 import { useParams } from "next/navigation";
+import { addToCart } from "../../../lib/cart";
 
 export default function ProductPage() {
+
   const params = useParams();
   const id = Number(params.id);
 
@@ -29,34 +31,32 @@ export default function ProductPage() {
   return (
     <main className="p-10">
 
-      <div className="grid md:grid-cols-2 gap-10">
+      <img
+        src={product.image}
+        className="w-full h-80 object-cover rounded"
+      />
 
-        <img
-          src={product.image}
-          className="w-full rounded-xl"
-        />
+      <h1 className="text-3xl mt-6 font-bold">
+        {product.name}
+      </h1>
 
-        <div>
+      <p className="text-green-500 text-xl mt-2">
+        ¥{product.price}
+      </p>
 
-          <h1 className="text-4xl font-bold">
-            {product.name}
-          </h1>
+      <p className="mt-4">
+        {product.description}
+      </p>
 
-          <p className="text-green-500 text-2xl mt-3">
-            ¥{product.price}
-          </p>
-
-          <p className="mt-6 text-gray-300">
-            {product.description}
-          </p>
-
-          <button className="mt-6 bg-green-600 px-6 py-3 rounded">
-            Add to Cart
-          </button>
-
-        </div>
-
-      </div>
+      <button
+        onClick={() => {
+          addToCart(product);
+          alert("Added to cart 🛒");
+        }}
+        className="mt-6 bg-green-600 px-6 py-3 rounded"
+      >
+        Add to Cart
+      </button>
 
     </main>
   );
