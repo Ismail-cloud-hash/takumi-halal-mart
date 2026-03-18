@@ -29,7 +29,7 @@ export default function Home() {
   const categories = ["All", "Fruits", "Meat", "Rice", "Spices", "Drinks"];
 
   return (
-    <main className="bg-white text-black min-h-screen">
+    <main className="bg-black text-white min-h-screen">
 
       {/* HEADER */}
       <div className="bg-gray-900 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
