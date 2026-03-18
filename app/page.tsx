@@ -1,5 +1,6 @@
 "use client";
 
+import { addToCart } from "../lib/cart";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import Link from "next/link";
