@@ -35,8 +35,8 @@ export default function Home() {
           Cart 🛒
         </Link>
 
-        <Link href="/admin" className="bg-green-600 px-4 py-2 rounded">
-         Admin ⚙️
+        <Link href="/login" className="bg-gray-700 px-4 py-2 rounded">
+          Admin ⚙️
         </Link>
       </div>
 
