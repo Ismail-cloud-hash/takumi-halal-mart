@@ -10,7 +10,6 @@ export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  const [category, setCategory] = useState("All");
 
   useEffect(() => {
     fetchProducts();
@@ -26,27 +25,19 @@ export default function Home() {
     setProducts(data || []);
   }
 
-  const categories = ["All", "Fruits", "Meat", "Rice", "Spices", "Drinks"];
-
   return (
-    <main className="bg-black text-white min-h-screen">
+    <main className="p-6">
 
       {/* HEADER */}
-      <div className="bg-gray-900 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex justify-between items-center mb-6">
 
-        <h1 className="text-2xl font-bold text-green-500">
+        <h1 className="text-3xl text-green-500 font-bold">
           Takumi Halal Mart
         </h1>
 
-        <input
-          placeholder="Search products..."
-          className="w-full md:w-1/2 p-2 rounded bg-gray-800"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
         <div className="flex gap-4 items-center">
 
+          {/* CART */}
           <Link href="/cart" className="relative bg-green-600 px-4 py-2 rounded">
 
             Cart 🛒
@@ -59,6 +50,7 @@ export default function Home() {
 
           </Link>
 
+          {/* ADMIN */}
           <Link href="/login" className="bg-gray-700 px-4 py-2 rounded">
             Admin ⚙️
           </Link>
@@ -67,117 +59,56 @@ export default function Home() {
 
       </div>
 
-      {/* HERO */}
-      <div className="p-4">
-        <img
-          src="https://images.unsplash.com/photo-1606787366850-de6330128bfc"
-          className="w-full h-48 md:h-64 object-cover rounded-xl"
-        />
-      </div>
+      {/* SEARCH */}
+      <input
+        placeholder="Search products..."
+        className="w-full p-3 mb-6 bg-gray-800 rounded"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-      {/* SLIDER (HORIZONTAL SCROLL) */}
-      <div className="px-4 mb-6 overflow-x-auto flex gap-4">
+      {/* PRODUCTS */}
+      <div className="grid md:grid-cols-3 gap-6">
 
-        {products.slice(0, 6).map((product) => (
+        {products
+          .filter(p =>
+            p.name.toLowerCase().includes(search.toLowerCase())
+          )
+          .map((product) => (
 
-          <div key={product.id} className="min-w-[200px] bg-gray-900 p-3 rounded">
+            <div key={product.id} className="bg-gray-900 p-4 rounded">
 
-            <img
-              src={product.image}
-              className="w-full h-28 object-cover rounded"
-            />
+              <Link href={`/product/${product.id}`}>
 
-            <p className="mt-2 text-sm">{product.name}</p>
+                <img
+                  src={product.image}
+                  className="w-full h-40 object-cover rounded"
+                />
 
-          </div>
+                <h2 className="mt-3 font-bold">
+                  {product.name}
+                </h2>
 
-        ))}
+              </Link>
 
-      </div>
+              <p className="text-green-500">
+                ¥{product.price}
+              </p>
 
-      {/* MAIN LAYOUT */}
-      <div className="flex">
+              <button
+                onClick={() => {
+                  addToCart(product);
+                  setCartCount(getCartCount()); // 🔥 update badge
+                  alert("Added to cart 🛒");
+                }}
+                className="mt-2 w-full bg-green-600 py-2 rounded"
+              >
+                Add to Cart
+              </button>
 
-        {/* SIDEBAR */}
-        <div className="w-1/4 hidden md:block p-4">
-
-          <h2 className="text-xl mb-4">Categories</h2>
-
-          {categories.map((cat) => (
-            <div
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`p-2 mb-2 cursor-pointer rounded ${
-                category === cat ? "bg-green-600" : "bg-gray-900"
-              }`}
-            >
-              {cat}
             </div>
+
           ))}
-
-        </div>
-
-        {/* PRODUCTS */}
-        <div className="w-full md:w-3/4 p-4">
-
-          <h2 className="text-2xl mb-4">Products</h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-
-            {products
-              .filter((p) =>
-                p.name.toLowerCase().includes(search.toLowerCase())
-              )
-              .filter((p) =>
-                category === "All" ? true : p.category === category
-              )
-              .map((product) => (
-
-                <div
-                  key={product.id}
-                  className="bg-gray-900 p-4 rounded hover:scale-105 transition relative"
-                >
-
-                  {/* ❤️ Wishlist icon */}
-                  <div className="absolute top-2 right-2 cursor-pointer">
-                    ❤️
-                  </div>
-
-                  <Link href={`/product/${product.id}`}>
-
-                    <img
-                      src={product.image}
-                      className="w-full h-40 object-cover rounded"
-                    />
-
-                    <h2 className="mt-3 font-bold">
-                      {product.name}
-                    </h2>
-
-                  </Link>
-
-                  <p className="text-green-500 font-bold">
-                    ¥{product.price}
-                  </p>
-
-                  <button
-                    onClick={() => {
-                      addToCart(product);
-                      setCartCount(getCartCount());
-                      alert("Added to cart 🛒");
-                    }}
-                    className="mt-3 w-full bg-green-600 py-2 rounded hover:bg-green-700"
-                  >
-                    Add to Cart
-                  </button>
-
-                </div>
-
-              ))}
-
-          </div>
-
-        </div>
 
       </div>
 

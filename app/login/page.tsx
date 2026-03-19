@@ -1,48 +1,59 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "../../supabase";
 import { useRouter } from "next/navigation";
 
-export default function Login(){
+export default function LoginPage() {
 
-  const [password,setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
 
-  function login(){
+  async function handleLogin() {
 
-    if(password === "admin123"){
-      localStorage.setItem("admin","true");
-      router.push("/admin");
-    } else {
-      alert("Wrong password ❌");
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert("Login failed");
+      return;
     }
 
+    alert("Login success ✅");
+    router.push("/admin");
   }
 
-  return(
-    <main className="flex justify-center items-center h-screen bg-white">
+  return (
+    <main className="p-10 max-w-md mx-auto">
 
-      <div className="p-6 border rounded w-80">
+      <h1 className="text-3xl mb-6 font-bold">
+        Admin Login
+      </h1>
 
-        <h1 className="text-xl font-bold mb-4 text-green-700">
-          Admin Login
-        </h1>
+      <input
+        placeholder="Email"
+        className="w-full p-3 mb-3 bg-gray-800 rounded"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-        <input
-          type="password"
-          placeholder="Enter password"
-          className="border p-2 mb-3 w-full"
-          onChange={(e)=>setPassword(e.target.value)}
-        />
+      <input
+        type="password"
+        placeholder="Password"
+        className="w-full p-3 mb-3 bg-gray-800 rounded"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-        <button
-          onClick={login}
-          className="bg-green-600 text-white w-full py-2 rounded"
-        >
-          Login
-        </button>
-
-      </div>
+      <button
+        onClick={handleLogin}
+        className="w-full bg-green-600 py-3 rounded"
+      >
+        Login
+      </button>
 
     </main>
   );
