@@ -6,7 +6,6 @@ import { getCart, getCartTotal } from "../../lib/cart";
 import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
-
   const router = useRouter();
 
   const [cart, setCart] = useState<any[]>([]);
@@ -19,86 +18,48 @@ export default function CheckoutPage() {
   }, []);
 
   async function placeOrder() {
-
     if (!name || !phone || !address) {
       alert("Fill all fields ❌");
       return;
     }
 
-    const total = getCartTotal();
-
-    const { error } = await supabase.from("orders").insert([
-      { name, phone, address, total }
-    ]);
-
-    if (error) {
-      alert("Order failed ❌");
+    if (cart.length === 0) {
+      alert("Cart empty ❌");
       return;
     }
 
-    // ✅ CLEAR CART
-    localStorage.removeItem("cart");
+    const { error } = await supabase.from("orders").insert([
+      {
+        name,
+        phone,
+        address,
+        total: getCartTotal(),
+        items: cart, // 🔥 IMPORTANT
+      },
+    ]);
 
-    // ✅ REDIRECT TO SUCCESS PAGE
+    if (error) {
+      alert("Order failed");
+      return;
+    }
+
+    localStorage.removeItem("cart");
     router.push("/success");
   }
 
   return (
-    <main className="p-10 max-w-xl mx-auto bg-white min-h-screen text-black">
+    <main className="p-10 bg-black text-white min-h-screen">
+      <h1 className="text-3xl mb-6 text-green-500">Checkout</h1>
 
-      <h1 className="text-3xl font-bold mb-6 text-green-700">
-        Checkout 💳
-      </h1>
+      <input className="w-full p-3 mb-3 bg-gray-800" placeholder="Name" onChange={e=>setName(e.target.value)} />
+      <input className="w-full p-3 mb-3 bg-gray-800" placeholder="Phone" onChange={e=>setPhone(e.target.value)} />
+      <textarea className="w-full p-3 mb-3 bg-gray-800" placeholder="Address" onChange={e=>setAddress(e.target.value)} />
 
-      <div className="space-y-4">
+      <h2>Total: ¥{getCartTotal()}</h2>
 
-        <input
-          placeholder="Your Name"
-          className="w-full p-3 border rounded"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <input
-          placeholder="Phone Number"
-          className="w-full p-3 border rounded"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <textarea
-          placeholder="Address"
-          className="w-full p-3 border rounded"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-
-      </div>
-
-      <div className="mt-6 p-4 border rounded">
-
-        <h2 className="text-xl mb-3">Order Summary</h2>
-
-        {cart.map((item) => (
-          <div key={item.id} className="flex justify-between">
-            <p>{item.name} x {item.quantity}</p>
-            <p>¥{item.price * item.quantity}</p>
-          </div>
-        ))}
-
-        <h3 className="mt-4 font-bold">
-          Total: ¥{getCartTotal()}
-        </h3>
-
-      </div>
-
-      <button
-        onClick={placeOrder}
-        className="mt-6 w-full bg-green-600 text-white py-3 rounded"
-      >
+      <button onClick={placeOrder} className="mt-6 bg-green-600 w-full py-3">
         Place Order
       </button>
-
     </main>
   );
 }
