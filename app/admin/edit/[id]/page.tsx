@@ -14,8 +14,11 @@ export default function EditProduct() {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("Fruits");
+
   const [image, setImage] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
+
   const [message, setMessage] = useState("");
 
   const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
@@ -49,7 +52,7 @@ export default function EditProduct() {
   async function updateProduct() {
     let imageUrl = image;
 
-    // 🔥 if new image selected
+    // 🔥 upload new image if selected
     if (file) {
       const fileName = Date.now() + file.name;
 
@@ -83,36 +86,56 @@ export default function EditProduct() {
   return (
     <main className="bg-black text-white min-h-screen p-4 max-w-md mx-auto">
 
-      {/* HEADER */}
       <h1 className="text-2xl font-bold text-green-400 mb-4">
         Edit Product
       </h1>
 
-      {/* NOTIFICATION */}
+      {/* TOAST */}
       {message && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded z-50">
           {message}
         </div>
       )}
 
       <div className="bg-gray-900 p-4 rounded-xl space-y-3">
 
-        {/* IMAGE PREVIEW */}
+        {/* 🔥 IMAGE PREVIEW FIX */}
         <img
-          src={image}
+          src={preview || image}
           className="w-full h-40 object-cover rounded"
         />
 
+        {/* 🔥 DRAG & DROP */}
+        <div
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files[0];
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          className="border-2 border-dashed border-gray-600 p-4 text-center rounded"
+        >
+          Drag & Drop Image
+        </div>
+
+        {/* 🔥 FILE INPUT */}
         <input
           type="file"
-          onChange={(e)=>setFile(e.target.files?.[0]||null)}
+          onChange={(e) => {
+            const selected = e.target.files?.[0];
+            if (!selected) return;
+
+            setFile(selected);
+            setPreview(URL.createObjectURL(selected));
+          }}
           className="w-full"
         />
 
         {/* NAME */}
         <input
           value={name}
-          onChange={(e)=>setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           className="w-full p-2 bg-gray-800 rounded"
           placeholder="Product Name"
         />
@@ -120,7 +143,7 @@ export default function EditProduct() {
         {/* PRICE */}
         <input
           value={price}
-          onChange={(e)=>setPrice(e.target.value)}
+          onChange={(e) => setPrice(e.target.value)}
           type="number"
           className="w-full p-2 bg-gray-800 rounded"
           placeholder="Price"
@@ -129,7 +152,7 @@ export default function EditProduct() {
         {/* STOCK */}
         <input
           value={stock}
-          onChange={(e)=>setStock(e.target.value)}
+          onChange={(e) => setStock(e.target.value)}
           type="number"
           className="w-full p-2 bg-gray-800 rounded"
           placeholder="Stock"
@@ -138,10 +161,10 @@ export default function EditProduct() {
         {/* CATEGORY */}
         <select
           value={category}
-          onChange={(e)=>setCategory(e.target.value)}
+          onChange={(e) => setCategory(e.target.value)}
           className="w-full p-2 bg-gray-800 rounded"
         >
-          {categories.map(c=>(
+          {categories.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
@@ -155,7 +178,7 @@ export default function EditProduct() {
         </button>
 
         <button
-          onClick={()=>router.push("/admin")}
+          onClick={() => router.push("/admin")}
           className="w-full bg-gray-700 py-2 rounded"
         >
           Back
