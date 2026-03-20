@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import {
   LineChart,
@@ -17,44 +16,40 @@ import {
 export default function Admin() {
   const router = useRouter();
 
+  const [tab, setTab] = useState("dashboard");
+
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [category, setCategory] = useState("Fruits");
   const [file, setFile] = useState<File | null>(null);
+
+  const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
 
   useEffect(() => {
     checkUser();
 
-    // 🔥 REALTIME
     const channel = supabase
-      .channel("live-data")
+      .channel("live")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "products" },
-        () => fetchProducts()
+        fetchProducts
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
   async function checkUser() {
     const { data } = await supabase.auth.getUser();
+    if (!data.user) return router.push("/login");
 
-    if (!data.user) {
-      router.push("/login");
-      return;
-    }
-
-    await fetchProducts();
-    await fetchOrders();
-    setLoading(false);
+    fetchProducts();
+    fetchOrders();
   }
 
   async function fetchProducts() {
@@ -86,6 +81,7 @@ export default function Admin() {
         name,
         price: Number(price),
         stock: Number(stock),
+        category,
         image: data.publicUrl,
       },
     ]);
@@ -98,164 +94,164 @@ export default function Admin() {
     fetchProducts();
   }
 
-  async function deleteProduct(id: number) {
-    await supabase.from("products").delete().eq("id", id);
-    fetchProducts();
-  }
-
   async function updateOrderStatus(id: number, status: string) {
     await supabase.from("orders").update({ status }).eq("id", id);
     fetchOrders();
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
-
-  if (loading) return <p className="p-6 text-white">Loading...</p>;
-
-  // 🔥 DASHBOARD DATA
-  const totalRevenue = orders.reduce((t, o) => t + o.total, 0);
-  const lowStock = products.filter(p => p.stock < 5);
-
+  // 📊 chart data
   const chartData = orders.map((o, i) => ({
-    name: "Order " + (i + 1),
+    name: "O" + (i + 1),
     total: o.total,
   }));
 
+  const revenue = orders.reduce((t, o) => t + o.total, 0);
+  const lowStock = products.filter(p => p.stock < 5);
+
   return (
-    <main className="bg-black text-white min-h-screen p-4 md:p-8 pb-20">
+    <main className="bg-black text-white min-h-screen pb-20">
 
       {/* HEADER */}
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl text-green-400 font-bold">
-          Dashboard
-        </h1>
-        <button onClick={logout} className="bg-red-600 px-4 py-2 rounded">
-          Logout
-        </button>
+      <div className="p-4 text-xl font-bold text-green-400">
+        Admin App
       </div>
 
-      {/* 🔥 ALERT */}
-      {lowStock.length > 0 && (
-        <div className="bg-red-600 p-3 rounded mb-6">
-          ⚠ Low Stock:
-          {lowStock.map(p => (
-            <p key={p.id}>{p.name} ({p.stock})</p>
-          ))}
+      {/* 🔥 DASHBOARD TAB */}
+      {tab === "dashboard" && (
+        <div className="p-4">
+
+          {/* STATS */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-gray-900 p-3 rounded">
+              Products: {products.length}
+            </div>
+            <div className="bg-gray-900 p-3 rounded">
+              Revenue: ¥{revenue}
+            </div>
+          </div>
+
+          {/* LOW STOCK */}
+          {lowStock.length > 0 && (
+            <div className="bg-red-600 p-3 rounded mb-4 text-sm">
+              ⚠ Low Stock:
+              {lowStock.map(p=>(
+                <p key={p.id}>{p.name} ({p.stock})</p>
+              ))}
+            </div>
+          )}
+
+          {/* CHART */}
+          <div className="bg-gray-900 p-3 rounded h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="total" stroke="#22c55e" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
         </div>
       )}
 
-      {/* 🔥 STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      {/* 🔥 PRODUCTS TAB */}
+      {tab === "products" && (
+        <div className="p-4">
 
-        <div className="bg-gray-900 p-4 rounded">
-          Products: {products.length}
-        </div>
+          {/* ADD */}
+          <div className="bg-gray-900 p-3 rounded mb-4 space-y-2">
+            <input placeholder="Name" className="w-full p-2 bg-gray-800"
+              onChange={(e)=>setName(e.target.value)} />
+            <input placeholder="Price" type="number" className="w-full p-2 bg-gray-800"
+              onChange={(e)=>setPrice(e.target.value)} />
+            <input placeholder="Stock" type="number" className="w-full p-2 bg-gray-800"
+              onChange={(e)=>setStock(e.target.value)} />
 
-        <div className="bg-gray-900 p-4 rounded">
-          Orders: {orders.length}
-        </div>
+            <select className="w-full p-2 bg-gray-800"
+              onChange={(e)=>setCategory(e.target.value)}>
+              {categories.map(c=><option key={c}>{c}</option>)}
+            </select>
 
-        <div className="bg-gray-900 p-4 rounded col-span-2 md:col-span-1 text-green-400">
-          Revenue: ¥{totalRevenue}
-        </div>
+            <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
 
-      </div>
-
-      {/* 🔥 CHART */}
-      <div className="bg-gray-900 p-4 rounded mb-6">
-
-        <h2 className="mb-3">Sales Chart 📊</h2>
-
-        <div className="h-60">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="total" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-      </div>
-
-      {/* 🔥 ADD PRODUCT */}
-      <div className="bg-gray-900 p-4 rounded mb-6">
-
-        <input placeholder="Name" className="w-full mb-2 p-2 bg-gray-800" onChange={e=>setName(e.target.value)} />
-        <input placeholder="Price" type="number" className="w-full mb-2 p-2 bg-gray-800" onChange={e=>setPrice(e.target.value)} />
-        <input placeholder="Stock" type="number" className="w-full mb-2 p-2 bg-gray-800" onChange={e=>setStock(e.target.value)} />
-        <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
-
-        <button onClick={addProduct} className="mt-3 w-full bg-green-600 py-2">
-          Add Product
-        </button>
-
-      </div>
-
-      {/* 🔥 PRODUCTS */}
-      <h2 id="products" className="mb-3">Products</h2>
-
-      {products.map(p => (
-        <div key={p.id} className="bg-gray-900 p-3 mb-2 rounded flex justify-between">
-
-          <div>
-            <p>{p.name}</p>
-            <p className="text-green-400">¥{p.price}</p>
-            <p className={`text-xs ${p.stock < 5 ? "text-red-400" : ""}`}>
-              Stock: {p.stock}
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Link href={`/admin/edit/${p.id}`} className="bg-blue-600 px-2 py-1 text-sm">
-              Edit
-            </Link>
-            <button onClick={()=>deleteProduct(p.id)} className="bg-red-600 px-2 py-1 text-sm">
-              Delete
+            <button onClick={addProduct} className="bg-green-600 w-full py-2">
+              Add Product
             </button>
           </div>
 
-        </div>
-      ))}
+          {/* LIST */}
+          {products.map(p=>(
+            <div key={p.id} className="bg-gray-900 p-3 rounded mb-2 flex gap-3">
 
-      {/* 🔥 ORDERS */}
-      <h2 id="orders" className="mt-6 mb-3">Orders</h2>
+              {/* IMAGE */}
+              <img src={p.image} className="w-16 h-16 object-cover rounded"/>
 
-      {orders.map(o => (
-        <div key={o.id} className="bg-gray-900 p-3 mb-2 rounded">
+              <div className="flex-1">
+                <p>{p.name}</p>
+                <p className="text-green-400">¥{p.price}</p>
+                <p className="text-xs">{p.category}</p>
+              </div>
 
-          <p>{o.name}</p>
+              <div className="text-xs">
+                <p className={p.stock<5?"text-red-400":""}>
+                  {p.stock}
+                </p>
+              </div>
 
-          {o.items?.map((i:any,index:number)=>(
-            <p key={index} className="text-xs text-gray-400">
-              {i.name} x {i.quantity}
-            </p>
+            </div>
           ))}
 
-          {/* STATUS */}
-          <select
-            value={o.status || "pending"}
-            onChange={(e)=>updateOrderStatus(o.id, e.target.value)}
-            className="bg-gray-800 mt-2"
-          >
-            <option value="pending">Pending</option>
-            <option value="delivered">Delivered</option>
-          </select>
+        </div>
+      )}
 
-          <p className="text-green-400">¥{o.total}</p>
+      {/* 🔥 ORDERS TAB */}
+      {tab === "orders" && (
+        <div className="p-4">
+
+          {orders.map(o=>(
+            <div key={o.id} className="bg-gray-900 p-3 mb-2 rounded">
+
+              <p>{o.name}</p>
+
+              {o.items?.map((i:any,index:number)=>(
+                <p key={index} className="text-xs text-gray-400">
+                  {i.name} x {i.quantity}
+                </p>
+              ))}
+
+              <select
+                value={o.status || "pending"}
+                onChange={(e)=>updateOrderStatus(o.id,e.target.value)}
+                className="w-full mt-2 bg-gray-800"
+              >
+                <option value="pending">🟡 Pending</option>
+                <option value="delivered">🟢 Delivered</option>
+              </select>
+
+              <p className="text-green-400">¥{o.total}</p>
+
+            </div>
+          ))}
 
         </div>
-      ))}
+      )}
 
-      {/* 🔥 MOBILE NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-2 md:hidden">
-        <button onClick={()=>window.scrollTo(0,0)}>🏠</button>
-        <button onClick={()=>document.getElementById("products")?.scrollIntoView()}>📦</button>
-        <button onClick={()=>document.getElementById("orders")?.scrollIntoView()}>🧾</button>
+      {/* 🔥 MOBILE TAB BAR */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3 text-sm">
+
+        <button onClick={()=>setTab("dashboard")}>
+          📊<br/>Home
+        </button>
+
+        <button onClick={()=>setTab("products")}>
+          📦<br/>Products
+        </button>
+
+        <button onClick={()=>setTab("orders")}>
+          🧾<br/>Orders
+        </button>
+
       </div>
 
     </main>
