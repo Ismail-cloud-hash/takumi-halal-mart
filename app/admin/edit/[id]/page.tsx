@@ -5,25 +5,51 @@ import { supabase } from "../../../../supabase";
 import { useParams, useRouter } from "next/navigation";
 
 export default function EditProduct() {
-  const { id }: any = useParams();
+  const params = useParams();
   const router = useRouter();
 
-  const [product, setProduct] = useState<any>(null);
+  const id = Number(params.id);
+
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [category, setCategory] = useState("Fruits");
+  const [image, setImage] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState("");
+
+  const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
 
   useEffect(() => {
-    supabase
+    fetchProduct();
+  }, []);
+
+  useEffect(() => {
+    if (message) {
+      setTimeout(() => setMessage(""), 2000);
+    }
+  }, [message]);
+
+  async function fetchProduct() {
+    const { data } = await supabase
       .from("products")
       .select("*")
       .eq("id", id)
-      .single()
-      .then(({ data }) => setProduct(data));
-  }, [id]);
+      .single();
+
+    if (data) {
+      setName(data.name);
+      setPrice(data.price);
+      setStock(data.stock);
+      setCategory(data.category);
+      setImage(data.image);
+    }
+  }
 
   async function updateProduct() {
-    let imageUrl = product.image;
+    let imageUrl = image;
 
-    // 🔥 if new image uploaded
+    // 🔥 if new image selected
     if (file) {
       const fileName = Date.now() + file.name;
 
@@ -39,50 +65,103 @@ export default function EditProduct() {
     await supabase
       .from("products")
       .update({
-        name: product.name,
-        price: Number(product.price),
-        category: product.category,
-        description: product.description,
+        name,
+        price: Number(price),
+        stock: Number(stock),
+        category,
         image: imageUrl,
       })
       .eq("id", id);
 
-    alert("Updated ✅");
-    router.push("/admin");
+    setMessage("Updated Successfully ✅");
+
+    setTimeout(() => {
+      router.push("/admin");
+    }, 1000);
   }
 
-  if (!product) return <p className="p-10 text-white">Loading...</p>;
-
   return (
-    <main className="p-10 bg-black text-white min-h-screen max-w-md mx-auto">
+    <main className="bg-black text-white min-h-screen p-4 max-w-md mx-auto">
 
-      <h1 className="text-2xl mb-6">Edit Product</h1>
+      {/* HEADER */}
+      <h1 className="text-2xl font-bold text-green-400 mb-4">
+        Edit Product
+      </h1>
 
-      <input
-        value={product.name}
-        onChange={(e) => setProduct({ ...product, name: e.target.value })}
-        className="w-full p-3 mb-3 bg-gray-800"
-      />
+      {/* NOTIFICATION */}
+      {message && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded">
+          {message}
+        </div>
+      )}
 
-      <input
-        value={product.price}
-        onChange={(e) => setProduct({ ...product, price: e.target.value })}
-        className="w-full p-3 mb-3 bg-gray-800"
-      />
+      <div className="bg-gray-900 p-4 rounded-xl space-y-3">
 
-      <textarea
-        value={product.description}
-        onChange={(e) => setProduct({ ...product, description: e.target.value })}
-        className="w-full p-3 mb-3 bg-gray-800"
-      />
+        {/* IMAGE PREVIEW */}
+        <img
+          src={image}
+          className="w-full h-40 object-cover rounded"
+        />
 
-      <img src={product.image} className="mb-3 h-40 w-full object-cover"/>
+        <input
+          type="file"
+          onChange={(e)=>setFile(e.target.files?.[0]||null)}
+          className="w-full"
+        />
 
-      <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
+        {/* NAME */}
+        <input
+          value={name}
+          onChange={(e)=>setName(e.target.value)}
+          className="w-full p-2 bg-gray-800 rounded"
+          placeholder="Product Name"
+        />
 
-      <button onClick={updateProduct} className="mt-4 w-full bg-green-600 py-3">
-        Update Product
-      </button>
+        {/* PRICE */}
+        <input
+          value={price}
+          onChange={(e)=>setPrice(e.target.value)}
+          type="number"
+          className="w-full p-2 bg-gray-800 rounded"
+          placeholder="Price"
+        />
+
+        {/* STOCK */}
+        <input
+          value={stock}
+          onChange={(e)=>setStock(e.target.value)}
+          type="number"
+          className="w-full p-2 bg-gray-800 rounded"
+          placeholder="Stock"
+        />
+
+        {/* CATEGORY */}
+        <select
+          value={category}
+          onChange={(e)=>setCategory(e.target.value)}
+          className="w-full p-2 bg-gray-800 rounded"
+        >
+          {categories.map(c=>(
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+
+        {/* BUTTONS */}
+        <button
+          onClick={updateProduct}
+          className="w-full bg-green-600 py-2 rounded"
+        >
+          Save Changes
+        </button>
+
+        <button
+          onClick={()=>router.push("/admin")}
+          className="w-full bg-gray-700 py-2 rounded"
+        >
+          Back
+        </button>
+
+      </div>
 
     </main>
   );

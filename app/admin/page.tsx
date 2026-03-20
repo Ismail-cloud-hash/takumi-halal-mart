@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
 import { useRouter } from "next/navigation";
-
 import {
   LineChart,
   Line,
@@ -48,6 +47,12 @@ export default function Admin() {
 
     return () => supabase.removeChannel(channel);
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      setTimeout(() => setMessage(""), 2000);
+    }
+  }, [message]);
 
   async function checkUser() {
     const { data } = await supabase.auth.getUser();
@@ -106,7 +111,6 @@ export default function Admin() {
     fetchOrders();
   }
 
-  // 📊 CHART
   const chartData = orders.map((o, i) => ({
     name: "O" + (i + 1),
     total: o.total,
@@ -122,9 +126,9 @@ export default function Admin() {
         Admin App
       </div>
 
-      {/* 🔔 NOTIFICATION */}
+      {/* NOTIFICATION */}
       {message && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded z-50">
           {message}
         </div>
       )}
@@ -176,12 +180,14 @@ export default function Admin() {
             {categories.map(c=><option key={c}>{c}</option>)}
           </select>
 
-          {/* ADD */}
+          {/* ADD PRODUCT */}
           <div className="bg-gray-900 p-3 rounded mb-4 space-y-2">
             <input placeholder="Name" className="w-full p-2 bg-gray-800"
               onChange={(e)=>setName(e.target.value)} />
+
             <input placeholder="Price" type="number" className="w-full p-2 bg-gray-800"
               onChange={(e)=>setPrice(e.target.value)} />
+
             <input placeholder="Stock" type="number" className="w-full p-2 bg-gray-800"
               onChange={(e)=>setStock(e.target.value)} />
 
@@ -197,32 +203,34 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* LIST */}
-          {products
-            .filter(p =>
-              p.name?.toLowerCase().includes(search.toLowerCase()) &&
-              (filterCategory==="all"||p.category===filterCategory)
-            )
-            .map(p=>(
-              <div key={p.id} className="bg-gray-900 p-3 rounded mb-3 flex gap-3 items-center">
+          {/* PRODUCT LIST */}
+          <div className="space-y-3">
+            {products
+              .filter(p =>
+                p.name?.toLowerCase().includes(search.toLowerCase()) &&
+                (filterCategory==="all"||p.category===filterCategory)
+              )
+              .map(p=>(
+                <div key={p.id} className="bg-gray-900 rounded-xl p-3 flex gap-3 items-center">
 
-                <img src={p.image} className="w-14 h-14 rounded object-cover"/>
+                  <img src={p.image} className="w-14 h-14 rounded-lg object-cover"/>
 
-                <div className="flex-1">
-                  <p>{p.name}</p>
-                  <p className="text-green-400 text-sm">¥{p.price}</p>
-                  <p className="text-xs">{p.category}</p>
+                  <div className="flex-1">
+                    <p className="font-semibold">{p.name}</p>
+                    <p className="text-green-400 text-sm">¥{p.price}</p>
+                    <p className="text-xs text-gray-400">{p.category}</p>
+                  </div>
+
+                  <button
+                    onClick={()=>setEditProduct(p)}
+                    className="bg-blue-600 px-3 py-1 rounded text-xs"
+                  >
+                    Edit
+                  </button>
+
                 </div>
-
-                <button
-                  onClick={()=>setEditProduct(p)}
-                  className="bg-blue-600 px-2 py-1 text-xs rounded"
-                >
-                  Edit
-                </button>
-
-              </div>
-            ))}
+              ))}
+          </div>
 
         </div>
       )}
@@ -245,7 +253,7 @@ export default function Admin() {
               <select
                 value={o.status || "pending"}
                 onChange={(e)=>updateOrderStatus(o.id,e.target.value)}
-                className="w-full mt-2 bg-gray-800"
+                className="w-full mt-2 bg-gray-800 rounded p-1"
               >
                 <option value="pending">🟡 Pending</option>
                 <option value="delivered">🟢 Delivered</option>
@@ -261,21 +269,31 @@ export default function Admin() {
 
       {/* EDIT MODAL */}
       {editProduct && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
 
-          <div className="bg-gray-900 p-4 rounded w-80 space-y-2">
+          <div className="bg-gray-900 p-4 rounded-xl w-80 space-y-2">
+
+            <h2 className="font-bold">Edit Product</h2>
 
             <input value={editProduct.name}
               onChange={(e)=>setEditProduct({...editProduct,name:e.target.value})}
-              className="w-full p-2 bg-gray-800" />
+              className="w-full p-2 bg-gray-800 rounded"/>
 
             <input value={editProduct.price}
               onChange={(e)=>setEditProduct({...editProduct,price:e.target.value})}
-              className="w-full p-2 bg-gray-800" />
+              className="w-full p-2 bg-gray-800 rounded"/>
 
             <input value={editProduct.stock}
               onChange={(e)=>setEditProduct({...editProduct,stock:e.target.value})}
-              className="w-full p-2 bg-gray-800" />
+              className="w-full p-2 bg-gray-800 rounded"/>
+
+            <select
+              value={editProduct.category}
+              onChange={(e)=>setEditProduct({...editProduct,category:e.target.value})}
+              className="w-full p-2 bg-gray-800 rounded"
+            >
+              {categories.map(c=><option key={c}>{c}</option>)}
+            </select>
 
             <button
               onClick={async()=>{
@@ -284,14 +302,14 @@ export default function Admin() {
                 setEditProduct(null);
                 fetchProducts();
               }}
-              className="bg-green-600 w-full py-2"
+              className="bg-green-600 w-full py-2 rounded"
             >
               Save
             </button>
 
             <button
               onClick={()=>setEditProduct(null)}
-              className="bg-red-600 w-full py-2"
+              className="bg-red-600 w-full py-2 rounded"
             >
               Cancel
             </button>
@@ -302,11 +320,22 @@ export default function Admin() {
       )}
 
       {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3 text-sm">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3 border-t border-gray-800 text-sm">
 
-        <button onClick={()=>setTab("dashboard")}>📊<br/>Home</button>
-        <button onClick={()=>setTab("products")}>📦<br/>Products</button>
-        <button onClick={()=>setTab("orders")}>🧾<br/>Orders</button>
+        <button onClick={()=>setTab("dashboard")}
+          className={tab==="dashboard"?"text-green-400":"text-gray-400"}>
+          📊<br/>Home
+        </button>
+
+        <button onClick={()=>setTab("products")}
+          className={tab==="products"?"text-green-400":"text-gray-400"}>
+          📦<br/>Products
+        </button>
+
+        <button onClick={()=>setTab("orders")}
+          className={tab==="orders"?"text-green-400":"text-gray-400"}>
+          🧾<br/>Orders
+        </button>
 
       </div>
 
