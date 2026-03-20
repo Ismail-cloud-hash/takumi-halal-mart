@@ -6,55 +6,25 @@ import { useParams } from "next/navigation";
 import { addToCart } from "../../../lib/cart";
 
 export default function ProductPage() {
-
-  const params = useParams();
-  const id = Number(params.id);
-
+  const { id }: any = useParams();
   const [product, setProduct] = useState<any>(null);
 
-  useEffect(() => {
-    async function fetchProduct() {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", id)
-        .single();
+  useEffect(()=>{
+    supabase.from("products").select("*").eq("id",id).single()
+      .then(({data})=>setProduct(data));
+  },[id]);
 
-      setProduct(data);
-    }
-
-    fetchProduct();
-  }, [id]);
-
-  if (!product) return <p className="p-10">Loading...</p>;
+  if(!product) return <p>Loading...</p>;
 
   return (
-    <main className="p-10">
+    <main className="p-10 bg-black text-white min-h-screen">
 
-      <img
-        src={product.image}
-        className="w-full h-80 object-cover rounded"
-      />
+      <img src={product.image} className="w-full h-80 object-cover"/>
 
-      <h1 className="text-3xl mt-6 font-bold">
-        {product.name}
-      </h1>
+      <h1 className="text-2xl mt-4">{product.name}</h1>
+      <p className="text-green-400">¥{product.price}</p>
 
-      <p className="text-green-500 text-xl mt-2">
-        ¥{product.price}
-      </p>
-
-      <p className="mt-4">
-        {product.description}
-      </p>
-
-      <button
-        onClick={() => {
-          addToCart(product);
-          alert("Added to cart 🛒");
-        }}
-        className="mt-6 bg-green-600 px-6 py-3 rounded"
-      >
+      <button onClick={()=>addToCart(product)} className="mt-4 bg-green-600 px-6 py-2">
         Add to Cart
       </button>
 
