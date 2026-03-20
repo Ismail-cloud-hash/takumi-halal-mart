@@ -34,7 +34,9 @@ export default function Admin() {
   const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
 
   useEffect(() => {
-    checkUser();
+    (async () => {
+      await checkUser();
+    })();
 
     const channel = supabase
       .channel("live")
@@ -45,7 +47,9 @@ export default function Admin() {
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
