@@ -1,86 +1,89 @@
 "use client";
 
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../../../supabase";
-import { useParams,useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-export default function EditProduct(){
-
-  const params = useParams();
+export default function EditProduct() {
+  const { id }: any = useParams();
   const router = useRouter();
-  const id = Number(params.id);
 
-  const [name,setName] = useState("");
-  const [price,setPrice] = useState("");
+  const [product, setProduct] = useState<any>(null);
+  const [file, setFile] = useState<File | null>(null);
 
-  useEffect(()=>{
+  useEffect(() => {
+    supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => setProduct(data));
+  }, [id]);
 
-    async function fetchProduct(){
+  async function updateProduct() {
+    let imageUrl = product.image;
 
-      const { data } = await supabase
+    // 🔥 if new image uploaded
+    if (file) {
+      const fileName = Date.now() + file.name;
+
+      await supabase.storage.from("products").upload(fileName, file);
+
+      const { data } = supabase.storage
         .from("products")
-        .select("*")
-        .eq("id",id)
-        .single();
+        .getPublicUrl(fileName);
 
-      if(data){
-        setName(data.name);
-        setPrice(data.price);
-      }
-
+      imageUrl = data.publicUrl;
     }
-
-    fetchProduct();
-
-  },[id]);
-
-
-  async function updateProduct(){
 
     await supabase
       .from("products")
       .update({
-        name,
-        price:Number(price)
+        name: product.name,
+        price: Number(product.price),
+        category: product.category,
+        description: product.description,
+        image: imageUrl,
       })
-      .eq("id",id);
+      .eq("id", id);
 
-    alert("Updated");
-
+    alert("Updated ✅");
     router.push("/admin");
-
   }
 
+  if (!product) return <p className="p-10 text-white">Loading...</p>;
 
-  return(
+  return (
+    <main className="p-10 bg-black text-white min-h-screen max-w-md mx-auto">
 
-    <main className="p-10 max-w-md">
-
-      <h1 className="text-3xl font-bold mb-6">
-        Edit Product
-      </h1>
+      <h1 className="text-2xl mb-6">Edit Product</h1>
 
       <input
-        className="w-full p-3 bg-gray-800 rounded mb-3"
-        value={name}
-        onChange={(e)=>setName(e.target.value)}
+        value={product.name}
+        onChange={(e) => setProduct({ ...product, name: e.target.value })}
+        className="w-full p-3 mb-3 bg-gray-800"
       />
 
       <input
-        className="w-full p-3 bg-gray-800 rounded mb-3"
-        value={price}
-        onChange={(e)=>setPrice(e.target.value)}
+        value={product.price}
+        onChange={(e) => setProduct({ ...product, price: e.target.value })}
+        className="w-full p-3 mb-3 bg-gray-800"
       />
 
-      <button
-        onClick={updateProduct}
-        className="bg-green-600 px-6 py-3 rounded"
-      >
+      <textarea
+        value={product.description}
+        onChange={(e) => setProduct({ ...product, description: e.target.value })}
+        className="w-full p-3 mb-3 bg-gray-800"
+      />
+
+      <img src={product.image} className="mb-3 h-40 w-full object-cover"/>
+
+      <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
+
+      <button onClick={updateProduct} className="mt-4 w-full bg-green-600 py-3">
         Update Product
       </button>
 
     </main>
-
   );
-
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const categoryOptions = [
+const categories = [
   "Fruits",
   "Halal Meat",
   "Rice",
@@ -17,13 +17,13 @@ const categoryOptions = [
 export default function Admin() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState(categoryOptions[0]);
+  const [category, setCategory] = useState(categories[0]);
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -39,51 +39,34 @@ export default function Admin() {
       return;
     }
 
-    setLoading(false);
     fetchProducts();
     fetchOrders();
+    setLoading(false);
   }
 
   async function fetchProducts() {
-    const { data } = await supabase
-      .from("products")
-      .select("*")
-      .order("id", { ascending: false });
-
+    const { data } = await supabase.from("products").select("*");
     setProducts(data || []);
   }
 
   async function fetchOrders() {
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .order("id", { ascending: false });
-
+    const { data } = await supabase.from("orders").select("*");
     setOrders(data || []);
   }
 
   async function addProduct() {
     if (!file || !name || !price) {
-      alert("Fill all fields ❌");
+      alert("Fill all fields");
       return;
     }
 
-    const fileName = Date.now() + "-" + file.name;
+    const fileName = Date.now() + file.name;
 
-    const { error: uploadError } = await supabase.storage
-      .from("products")
-      .upload(fileName, file);
+    await supabase.storage.from("products").upload(fileName, file);
 
-    if (uploadError) {
-      alert("Upload failed ❌");
-      return;
-    }
-
-    const { data: publicUrlData } = supabase.storage
+    const { data } = supabase.storage
       .from("products")
       .getPublicUrl(fileName);
-
-    const imageUrl = publicUrlData.publicUrl;
 
     await supabase.from("products").insert([
       {
@@ -91,11 +74,11 @@ export default function Admin() {
         price: Number(price),
         category,
         description,
-        image: imageUrl,
+        image: data.publicUrl,
       },
     ]);
 
-    alert("Product Added ✅");
+    alert("Added ✅");
 
     setName("");
     setPrice("");
@@ -118,31 +101,27 @@ export default function Admin() {
   if (loading) return <p className="p-10 text-white">Loading...</p>;
 
   return (
-    <main className="p-10 bg-gradient-to-br from-black to-gray-900 text-white min-h-screen">
+    <main className="bg-gradient-to-br from-black to-gray-900 text-white min-h-screen p-6">
 
       {/* HEADER */}
-      <div className="flex justify-between mb-8">
+      <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl text-green-400 font-bold">
-          Admin Panel
+          Admin Dashboard
         </h1>
 
-        <div className="flex gap-3">
-          <Link href="/" className="bg-gray-700 px-4 py-2 rounded">
-            Home
-          </Link>
-
-          <button onClick={logout} className="bg-red-600 px-4 py-2 rounded">
-            Logout
-          </button>
-        </div>
+        <button onClick={logout} className="bg-red-600 px-4 py-2 rounded">
+          Logout
+        </button>
       </div>
 
-      {/* ADD PRODUCT */}
-      <div className="max-w-md space-y-4 mb-10 bg-white/5 p-6 rounded-xl backdrop-blur">
+      {/* ADD PRODUCT CARD */}
+      <div className="bg-white/5 p-6 rounded-xl backdrop-blur mb-10">
+
+        <h2 className="mb-4 font-bold text-lg">Add Product</h2>
 
         <input
-          placeholder="Product Name"
-          className="w-full p-3 bg-gray-800 rounded"
+          placeholder="Name"
+          className="w-full p-3 mb-3 bg-gray-800 rounded"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -150,82 +129,84 @@ export default function Admin() {
         <input
           placeholder="Price"
           type="number"
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 mb-3 bg-gray-800 rounded"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
 
-        {/* 🔥 CATEGORY DROPDOWN */}
         <select
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 mb-3 bg-gray-800 rounded"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
-          {categoryOptions.map((cat) => (
-            <option key={cat}>{cat}</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
           ))}
         </select>
 
         <textarea
           placeholder="Description"
-          className="w-full p-3 bg-gray-800 rounded"
+          className="w-full p-3 mb-3 bg-gray-800 rounded"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
 
         <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
 
-        <button
-          onClick={addProduct}
-          className="bg-green-600 w-full py-3 rounded"
-        >
+        <button onClick={addProduct} className="mt-4 w-full bg-green-600 py-3 rounded">
           Add Product
         </button>
+
       </div>
 
       {/* PRODUCTS */}
-      <h2 className="text-2xl mb-4">Products 🛍️</h2>
+      <h2 className="text-xl mb-4">Products</h2>
 
-      {products.map((product) => (
-        <div
-          key={product.id}
-          className="flex justify-between bg-gray-900 p-4 mb-3 rounded"
-        >
-          <div>
-            <p className="font-bold">{product.name}</p>
-            <p className="text-green-400">¥{product.price}</p>
-            <p className="text-sm text-gray-400">{product.category}</p>
+      <div className="grid md:grid-cols-2 gap-4">
+
+        {products.map((p) => (
+          <div key={p.id} className="bg-gray-900 p-4 rounded-xl flex justify-between">
+
+            <div>
+              <p className="font-bold">{p.name}</p>
+              <p className="text-green-400">¥{p.price}</p>
+              <p className="text-sm text-gray-400">{p.category}</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Link href={`/admin/edit/${p.id}`} className="bg-blue-600 px-3 py-1 rounded">
+                Edit
+              </Link>
+
+              <button
+                onClick={() => deleteProduct(p.id)}
+                className="bg-red-600 px-3 py-1 rounded"
+              >
+                Delete
+              </button>
+            </div>
+
           </div>
+        ))}
 
-          <button
-            onClick={() => deleteProduct(product.id)}
-            className="bg-red-600 px-4 py-2 rounded"
-          >
-            Delete
-          </button>
-        </div>
-      ))}
+      </div>
 
       {/* ORDERS */}
-      <h2 className="text-2xl mt-10 mb-4">Orders 📦</h2>
+      <h2 className="text-xl mt-10 mb-4">Orders</h2>
 
-      {orders.map((order) => (
-        <div key={order.id} className="bg-gray-900 p-4 mb-3 rounded">
+      {orders.map((o) => (
+        <div key={o.id} className="bg-gray-900 p-4 mb-3 rounded-xl">
 
-          <p><strong>{order.name}</strong></p>
-          <p>{order.phone}</p>
-          <p className="text-sm text-gray-400">{order.address}</p>
+          <p>{o.name}</p>
+          <p className="text-sm">{o.phone}</p>
 
-          {/* 🔥 SHOW ITEMS */}
-          {order.items?.map((item: any, i: number) => (
-            <p key={i} className="text-sm text-gray-500">
+          {o.items?.map((item: any, i: number) => (
+            <p key={i} className="text-xs text-gray-400">
               {item.name} x {item.quantity}
             </p>
           ))}
 
-          <p className="text-green-400 font-bold mt-2">
-            ¥{order.total}
-          </p>
+          <p className="text-green-400 font-bold">¥{o.total}</p>
 
         </div>
       ))}
