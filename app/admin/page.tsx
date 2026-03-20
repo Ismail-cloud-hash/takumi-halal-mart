@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -14,11 +14,13 @@ import {
 
 export default function Admin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [tab, setTab] = useState("dashboard");
 
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -28,16 +30,52 @@ export default function Admin() {
 
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [editProduct, setEditProduct] = useState<any>(null);
   const [message, setMessage] = useState("");
 
   const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
 
+  // ✅ LOAD TAB FROM URL OR LOCAL STORAGE
   useEffect(() => {
-    (async () => {
-      await checkUser();
-    })();
+    const urlTab = searchParams.get("tab");
+    const savedTab = localStorage.getItem("adminTab");
 
+    const finalTab = urlTab || savedTab || "dashboard";
+    setTab(finalTab);
+  }, []);
+
+  // ✅ SAVE TAB
+  function changeTab(t: string) {
+    setTab(t);
+    localStorage.setItem("adminTab", t);
+  }
+
+  // ✅ LOAD DATA
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  async function checkUser() {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return router.push("/login");
+
+    fetchProducts();
+    fetchOrders();
+  }
+
+  async function fetchProducts() {
+    setLoading(true);
+    const { data } = await supabase.from("products").select("*");
+    setProducts(data || []);
+    setLoading(false);
+  }
+
+  async function fetchOrders() {
+    const { data } = await supabase.from("orders").select("*");
+    setOrders(data || []);
+  }
+
+  // ✅ REALTIME
+  useEffect(() => {
     const channel = supabase
       .channel("live")
       .on(
@@ -52,30 +90,7 @@ export default function Admin() {
     };
   }, []);
 
-  useEffect(() => {
-    if (message) {
-      setTimeout(() => setMessage(""), 2000);
-    }
-  }, [message]);
-
-  async function checkUser() {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return router.push("/login");
-
-    fetchProducts();
-    fetchOrders();
-  }
-
-  async function fetchProducts() {
-    const { data } = await supabase.from("products").select("*");
-    setProducts(data || []);
-  }
-
-  async function fetchOrders() {
-    const { data } = await supabase.from("orders").select("*");
-    setOrders(data || []);
-  }
-
+  // ✅ ADD PRODUCT
   async function addProduct() {
     if (!file || !name || !price || !stock) {
       setMessage("Fill all fields ❌");
@@ -90,17 +105,15 @@ export default function Admin() {
       .from("products")
       .getPublicUrl(fileName);
 
-    await supabase.from("products").insert([
-      {
-        name,
-        price: Number(price),
-        stock: Number(stock),
-        category,
-        image: data.publicUrl,
-      },
-    ]);
+    await supabase.from("products").insert([{
+      name,
+      price: Number(price),
+      stock: Number(stock),
+      category,
+      image: data.publicUrl,
+    }]);
 
-    setMessage("Product Added ✅");
+    setMessage("Added ✅");
 
     setName("");
     setPrice("");
@@ -110,35 +123,42 @@ export default function Admin() {
     fetchProducts();
   }
 
-  async function updateOrderStatus(id: number, status: string) {
-    await supabase.from("orders").update({ status }).eq("id", id);
+  // ✅ DELETE PRODUCT
+  async function deleteProduct(id:number){
+    if(!confirm("Delete this product?")) return;
+
+    await supabase.from("products").delete().eq("id",id);
+    fetchProducts();
+  }
+
+  // ✅ ORDER STATUS
+  async function updateOrderStatus(id:number,status:string){
+    await supabase.from("orders").update({status}).eq("id",id);
     fetchOrders();
   }
 
-  const chartData = orders.map((o, i) => ({
-    name: "O" + (i + 1),
-    total: o.total,
-  }));
+  const revenue = orders.reduce((t,o)=>t+o.total,0);
 
-  const revenue = orders.reduce((t, o) => t + o.total, 0);
+  const chartData = orders.map((o,i)=>({
+    name:"O"+(i+1),
+    total:o.total
+  }));
 
   return (
     <main className="bg-black text-white min-h-screen pb-20">
 
-      {/* HEADER */}
-      <div className="p-4 text-xl font-bold text-green-400">
+      <div className="p-4 text-green-400 text-xl font-bold">
         Admin App
       </div>
 
-      {/* NOTIFICATION */}
       {message && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded z-50">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded">
           {message}
         </div>
       )}
 
       {/* DASHBOARD */}
-      {tab === "dashboard" && (
+      {tab==="dashboard" && (
         <div className="p-4">
 
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -153,10 +173,10 @@ export default function Admin() {
           <div className="bg-gray-900 p-3 rounded h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="total" stroke="#22c55e" />
+                <XAxis dataKey="name"/>
+                <YAxis/>
+                <Tooltip/>
+                <Line type="monotone" dataKey="total" stroke="#22c55e"/>
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -165,26 +185,24 @@ export default function Admin() {
       )}
 
       {/* PRODUCTS */}
-      {tab === "products" && (
+      {tab==="products" && (
         <div className="p-4">
 
-          {/* SEARCH */}
           <input
             placeholder="Search..."
             className="w-full p-2 bg-gray-800 mb-2 rounded"
             onChange={(e)=>setSearch(e.target.value)}
           />
 
-          {/* FILTER */}
           <select
             className="w-full p-2 bg-gray-800 mb-3 rounded"
             onChange={(e)=>setFilterCategory(e.target.value)}
           >
-            <option value="all">All Categories</option>
+            <option value="all">All</option>
             {categories.map(c=><option key={c}>{c}</option>)}
           </select>
 
-          {/* ADD PRODUCT */}
+          {/* ADD */}
           <div className="bg-gray-900 p-3 rounded mb-4 space-y-2">
             <input placeholder="Name" className="w-full p-2 bg-gray-800"
               onChange={(e)=>setName(e.target.value)} />
@@ -207,138 +225,87 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* PRODUCT LIST */}
-          <div className="space-y-3">
-            {products
-              .filter(p =>
-                p.name?.toLowerCase().includes(search.toLowerCase()) &&
-                (filterCategory==="all"||p.category===filterCategory)
-              )
-              .map(p=>(
-                <div key={p.id} className="bg-gray-900 rounded-xl p-3 flex gap-3 items-center">
+          {/* LIST */}
+          {loading ? <p>Loading...</p> : (
+            <div className="space-y-3">
+              {products
+                .filter(p =>
+                  p.name?.toLowerCase().includes(search.toLowerCase()) &&
+                  (filterCategory==="all"||p.category===filterCategory)
+                )
+                .map(p=>(
+                  <div key={p.id} className="bg-gray-900 p-3 rounded flex gap-3 items-center">
 
-                  <img src={p.image} className="w-14 h-14 rounded-lg object-cover"/>
+                    <img src={p.image} className="w-14 h-14 rounded object-cover"/>
 
-                  <div className="flex-1">
-                    <p className="font-semibold">{p.name}</p>
-                    <p className="text-green-400 text-sm">¥{p.price}</p>
-                    <p className="text-xs text-gray-400">{p.category}</p>
+                    <div className="flex-1">
+                      <p>{p.name}</p>
+                      <p className="text-green-400">¥{p.price}</p>
+                      <p className="text-xs text-gray-400">Stock: {p.stock}</p>
+                    </div>
+
+                    <button
+                      onClick={()=>router.push(`/admin/edit/${p.id}`)}
+                      className="bg-blue-600 px-3 py-1 rounded text-xs"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={()=>deleteProduct(p.id)}
+                      className="bg-red-600 px-3 py-1 rounded text-xs"
+                    >
+                      Delete
+                    </button>
+
                   </div>
-
-                  <button
-                    onClick={()=>setEditProduct(p)}
-                    className="bg-blue-600 px-3 py-1 rounded text-xs"
-                  >
-                    Edit
-                  </button>
-
-                </div>
-              ))}
-          </div>
+                ))}
+            </div>
+          )}
 
         </div>
       )}
 
       {/* ORDERS */}
-      {tab === "orders" && (
+      {tab==="orders" && (
         <div className="p-4">
-
           {orders.map(o=>(
             <div key={o.id} className="bg-gray-900 p-3 mb-2 rounded">
 
               <p>{o.name}</p>
 
-              {o.items?.map((i:any,index:number)=>(
-                <p key={index} className="text-xs text-gray-400">
-                  {i.name} x {i.quantity}
-                </p>
-              ))}
-
               <select
                 value={o.status || "pending"}
                 onChange={(e)=>updateOrderStatus(o.id,e.target.value)}
-                className="w-full mt-2 bg-gray-800 rounded p-1"
+                className="w-full bg-gray-800 mt-2 p-1 rounded"
               >
-                <option value="pending">🟡 Pending</option>
-                <option value="delivered">🟢 Delivered</option>
+                <option value="pending">Pending</option>
+                <option value="delivered">Delivered</option>
               </select>
 
               <p className="text-green-400">¥{o.total}</p>
 
             </div>
           ))}
-
-        </div>
-      )}
-
-      {/* EDIT MODAL */}
-      {editProduct && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-
-          <div className="bg-gray-900 p-4 rounded-xl w-80 space-y-2">
-
-            <h2 className="font-bold">Edit Product</h2>
-
-            <input value={editProduct.name}
-              onChange={(e)=>setEditProduct({...editProduct,name:e.target.value})}
-              className="w-full p-2 bg-gray-800 rounded"/>
-
-            <input value={editProduct.price}
-              onChange={(e)=>setEditProduct({...editProduct,price:e.target.value})}
-              className="w-full p-2 bg-gray-800 rounded"/>
-
-            <input value={editProduct.stock}
-              onChange={(e)=>setEditProduct({...editProduct,stock:e.target.value})}
-              className="w-full p-2 bg-gray-800 rounded"/>
-
-            <select
-              value={editProduct.category}
-              onChange={(e)=>setEditProduct({...editProduct,category:e.target.value})}
-              className="w-full p-2 bg-gray-800 rounded"
-            >
-              {categories.map(c=><option key={c}>{c}</option>)}
-            </select>
-
-            <button
-              onClick={async()=>{
-                await supabase.from("products").update(editProduct).eq("id",editProduct.id);
-                setMessage("Updated ✅");
-                setEditProduct(null);
-                fetchProducts();
-              }}
-              className="bg-green-600 w-full py-2 rounded"
-            >
-              Save
-            </button>
-
-            <button
-              onClick={()=>setEditProduct(null)}
-              className="bg-red-600 w-full py-2 rounded"
-            >
-              Cancel
-            </button>
-
-          </div>
-
         </div>
       )}
 
       {/* BOTTOM NAV */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3 border-t border-gray-800 text-sm">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3">
 
-        <button onClick={()=>setTab("dashboard")}
+        <button onClick={()=>changeTab("dashboard")}
           className={tab==="dashboard"?"text-green-400":"text-gray-400"}>
-          📊<br/>Home
+          Home
         </button>
 
-        <button onClick={()=>setTab("products")}
+        <button onClick={()=>changeTab("products")}
           className={tab==="products"?"text-green-400":"text-gray-400"}>
-          📦<br/>Products
+          Products
         </button>
 
-        <button onClick={()=>setTab("orders")}
+        <button onClick={()=>changeTab("orders")}
           className={tab==="orders"?"text-green-400":"text-gray-400"}>
-          🧾<br/>Orders
+          Orders
         </button>
 
       </div>
