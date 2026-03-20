@@ -27,6 +27,11 @@ export default function Admin() {
   const [category, setCategory] = useState("Fruits");
   const [file, setFile] = useState<File | null>(null);
 
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [editProduct, setEditProduct] = useState<any>(null);
+  const [message, setMessage] = useState("");
+
   const categories = ["Fruits","Halal Meat","Rice","Snacks","Drinks"];
 
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function Admin() {
 
   async function addProduct() {
     if (!file || !name || !price || !stock) {
-      alert("Fill all fields ❌");
+      setMessage("Fill all fields ❌");
       return;
     }
 
@@ -86,6 +91,8 @@ export default function Admin() {
       },
     ]);
 
+    setMessage("Product Added ✅");
+
     setName("");
     setPrice("");
     setStock("");
@@ -99,14 +106,13 @@ export default function Admin() {
     fetchOrders();
   }
 
-  // 📊 chart data
+  // 📊 CHART
   const chartData = orders.map((o, i) => ({
     name: "O" + (i + 1),
     total: o.total,
   }));
 
   const revenue = orders.reduce((t, o) => t + o.total, 0);
-  const lowStock = products.filter(p => p.stock < 5);
 
   return (
     <main className="bg-black text-white min-h-screen pb-20">
@@ -116,11 +122,17 @@ export default function Admin() {
         Admin App
       </div>
 
-      {/* 🔥 DASHBOARD TAB */}
+      {/* 🔔 NOTIFICATION */}
+      {message && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 px-4 py-2 rounded">
+          {message}
+        </div>
+      )}
+
+      {/* DASHBOARD */}
       {tab === "dashboard" && (
         <div className="p-4">
 
-          {/* STATS */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-gray-900 p-3 rounded">
               Products: {products.length}
@@ -130,17 +142,6 @@ export default function Admin() {
             </div>
           </div>
 
-          {/* LOW STOCK */}
-          {lowStock.length > 0 && (
-            <div className="bg-red-600 p-3 rounded mb-4 text-sm">
-              ⚠ Low Stock:
-              {lowStock.map(p=>(
-                <p key={p.id}>{p.name} ({p.stock})</p>
-              ))}
-            </div>
-          )}
-
-          {/* CHART */}
           <div className="bg-gray-900 p-3 rounded h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -155,9 +156,25 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🔥 PRODUCTS TAB */}
+      {/* PRODUCTS */}
       {tab === "products" && (
         <div className="p-4">
+
+          {/* SEARCH */}
+          <input
+            placeholder="Search..."
+            className="w-full p-2 bg-gray-800 mb-2 rounded"
+            onChange={(e)=>setSearch(e.target.value)}
+          />
+
+          {/* FILTER */}
+          <select
+            className="w-full p-2 bg-gray-800 mb-3 rounded"
+            onChange={(e)=>setFilterCategory(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            {categories.map(c=><option key={c}>{c}</option>)}
+          </select>
 
           {/* ADD */}
           <div className="bg-gray-900 p-3 rounded mb-4 space-y-2">
@@ -175,37 +192,42 @@ export default function Admin() {
 
             <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
 
-            <button onClick={addProduct} className="bg-green-600 w-full py-2">
+            <button onClick={addProduct} className="bg-green-600 w-full py-2 rounded">
               Add Product
             </button>
           </div>
 
           {/* LIST */}
-          {products.map(p=>(
-            <div key={p.id} className="bg-gray-900 p-3 rounded mb-2 flex gap-3">
+          {products
+            .filter(p =>
+              p.name?.toLowerCase().includes(search.toLowerCase()) &&
+              (filterCategory==="all"||p.category===filterCategory)
+            )
+            .map(p=>(
+              <div key={p.id} className="bg-gray-900 p-3 rounded mb-3 flex gap-3 items-center">
 
-              {/* IMAGE */}
-              <img src={p.image} className="w-16 h-16 object-cover rounded"/>
+                <img src={p.image} className="w-14 h-14 rounded object-cover"/>
 
-              <div className="flex-1">
-                <p>{p.name}</p>
-                <p className="text-green-400">¥{p.price}</p>
-                <p className="text-xs">{p.category}</p>
+                <div className="flex-1">
+                  <p>{p.name}</p>
+                  <p className="text-green-400 text-sm">¥{p.price}</p>
+                  <p className="text-xs">{p.category}</p>
+                </div>
+
+                <button
+                  onClick={()=>setEditProduct(p)}
+                  className="bg-blue-600 px-2 py-1 text-xs rounded"
+                >
+                  Edit
+                </button>
+
               </div>
-
-              <div className="text-xs">
-                <p className={p.stock<5?"text-red-400":""}>
-                  {p.stock}
-                </p>
-              </div>
-
-            </div>
-          ))}
+            ))}
 
         </div>
       )}
 
-      {/* 🔥 ORDERS TAB */}
+      {/* ORDERS */}
       {tab === "orders" && (
         <div className="p-4">
 
@@ -237,20 +259,54 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🔥 MOBILE TAB BAR */}
+      {/* EDIT MODAL */}
+      {editProduct && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
+
+          <div className="bg-gray-900 p-4 rounded w-80 space-y-2">
+
+            <input value={editProduct.name}
+              onChange={(e)=>setEditProduct({...editProduct,name:e.target.value})}
+              className="w-full p-2 bg-gray-800" />
+
+            <input value={editProduct.price}
+              onChange={(e)=>setEditProduct({...editProduct,price:e.target.value})}
+              className="w-full p-2 bg-gray-800" />
+
+            <input value={editProduct.stock}
+              onChange={(e)=>setEditProduct({...editProduct,stock:e.target.value})}
+              className="w-full p-2 bg-gray-800" />
+
+            <button
+              onClick={async()=>{
+                await supabase.from("products").update(editProduct).eq("id",editProduct.id);
+                setMessage("Updated ✅");
+                setEditProduct(null);
+                fetchProducts();
+              }}
+              className="bg-green-600 w-full py-2"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={()=>setEditProduct(null)}
+              className="bg-red-600 w-full py-2"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* BOTTOM NAV */}
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around py-3 text-sm">
 
-        <button onClick={()=>setTab("dashboard")}>
-          📊<br/>Home
-        </button>
-
-        <button onClick={()=>setTab("products")}>
-          📦<br/>Products
-        </button>
-
-        <button onClick={()=>setTab("orders")}>
-          🧾<br/>Orders
-        </button>
+        <button onClick={()=>setTab("dashboard")}>📊<br/>Home</button>
+        <button onClick={()=>setTab("products")}>📦<br/>Products</button>
+        <button onClick={()=>setTab("orders")}>🧾<br/>Orders</button>
 
       </div>
 
