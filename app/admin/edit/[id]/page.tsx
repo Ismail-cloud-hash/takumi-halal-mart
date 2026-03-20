@@ -178,7 +178,7 @@ export default function EditProduct() {
         </button>
 
         <button
-          onClick={() => router.push("/admin?tab=products")}
+          onClick={() => router.push("/admin")}
           className="w-full bg-gray-700 py-2 rounded"
         >
           Back
