@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../supabase";
 import Link from "next/link";
 
+const categoryOptions = [
+  "Fruits",
+  "Halal Meat",
+  "Rice",
+  "Snacks",
+  "Drinks",
+  "Frozen Foods",
+];
+
 export default function Admin() {
   const router = useRouter();
 
@@ -14,19 +23,18 @@ export default function Admin() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(categoryOptions[0]);
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  // 🔐 CHECK LOGIN
   useEffect(() => {
     checkUser();
   }, []);
 
   async function checkUser() {
-    const { data, error } = await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
 
-    if (error || !data.user) {
+    if (!data.user) {
       router.push("/login");
       return;
     }
@@ -36,37 +44,24 @@ export default function Admin() {
     fetchOrders();
   }
 
-  // 📦 FETCH PRODUCTS
   async function fetchProducts() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("products")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) {
-      alert("Failed to load products");
-      return;
-    }
-
     setProducts(data || []);
   }
 
-  // 📦 FETCH ORDERS
   async function fetchOrders() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("orders")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) {
-      alert("Failed to load orders");
-      return;
-    }
-
     setOrders(data || []);
   }
 
-  // ➕ ADD PRODUCT
   async function addProduct() {
     if (!file || !name || !price) {
       alert("Fill all fields ❌");
@@ -75,89 +70,59 @@ export default function Admin() {
 
     const fileName = Date.now() + "-" + file.name;
 
-    // 🔥 Upload image
     const { error: uploadError } = await supabase.storage
       .from("products")
       .upload(fileName, file);
 
     if (uploadError) {
-      alert("Image upload failed ❌");
+      alert("Upload failed ❌");
       return;
     }
 
-    // 🔥 FIXED PUBLIC URL
     const { data: publicUrlData } = supabase.storage
       .from("products")
       .getPublicUrl(fileName);
 
     const imageUrl = publicUrlData.publicUrl;
 
-    // 🔥 Insert product
-    const { error } = await supabase
-      .from("products")
-      .insert([
-        {
-          name,
-          price: Number(price),
-          category,
-          description,
-          image: imageUrl,
-        },
-      ]);
-
-    if (error) {
-      alert("Insert failed ❌");
-      return;
-    }
+    await supabase.from("products").insert([
+      {
+        name,
+        price: Number(price),
+        category,
+        description,
+        image: imageUrl,
+      },
+    ]);
 
     alert("Product Added ✅");
 
-    // reset form
     setName("");
     setPrice("");
-    setCategory("");
     setDescription("");
     setFile(null);
 
     fetchProducts();
   }
 
-  // ❌ DELETE PRODUCT
   async function deleteProduct(id: number) {
-    const { error } = await supabase
-      .from("products")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("Delete failed ❌");
-      return;
-    }
-
+    await supabase.from("products").delete().eq("id", id);
     fetchProducts();
   }
 
-  // 🚪 LOGOUT
   async function logout() {
     await supabase.auth.signOut();
     router.push("/login");
   }
 
-  // ⏳ LOADING
-  if (loading) {
-    return (
-      <main className="p-10 text-white bg-black min-h-screen">
-        Checking access...
-      </main>
-    );
-  }
+  if (loading) return <p className="p-10 text-white">Loading...</p>;
 
   return (
-    <main className="p-10 bg-black text-white min-h-screen">
+    <main className="p-10 bg-gradient-to-br from-black to-gray-900 text-white min-h-screen">
 
       {/* HEADER */}
       <div className="flex justify-between mb-8">
-        <h1 className="text-3xl text-green-500 font-bold">
+        <h1 className="text-3xl text-green-400 font-bold">
           Admin Panel
         </h1>
 
@@ -166,17 +131,14 @@ export default function Admin() {
             Home
           </Link>
 
-          <button
-            onClick={logout}
-            className="bg-red-600 px-4 py-2 rounded"
-          >
+          <button onClick={logout} className="bg-red-600 px-4 py-2 rounded">
             Logout
           </button>
         </div>
       </div>
 
       {/* ADD PRODUCT */}
-      <div className="max-w-md space-y-4 mb-10">
+      <div className="max-w-md space-y-4 mb-10 bg-white/5 p-6 rounded-xl backdrop-blur">
 
         <input
           placeholder="Product Name"
@@ -193,12 +155,16 @@ export default function Admin() {
           onChange={(e) => setPrice(e.target.value)}
         />
 
-        <input
-          placeholder="Category"
+        {/* 🔥 CATEGORY DROPDOWN */}
+        <select
           className="w-full p-3 bg-gray-800 rounded"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-        />
+        >
+          {categoryOptions.map((cat) => (
+            <option key={cat}>{cat}</option>
+          ))}
+        </select>
 
         <textarea
           placeholder="Description"
@@ -207,10 +173,7 @@ export default function Admin() {
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
+        <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
 
         <button
           onClick={addProduct}
@@ -230,7 +193,8 @@ export default function Admin() {
         >
           <div>
             <p className="font-bold">{product.name}</p>
-            <p className="text-green-500">¥{product.price}</p>
+            <p className="text-green-400">¥{product.price}</p>
+            <p className="text-sm text-gray-400">{product.category}</p>
           </div>
 
           <button
@@ -247,12 +211,22 @@ export default function Admin() {
 
       {orders.map((order) => (
         <div key={order.id} className="bg-gray-900 p-4 mb-3 rounded">
-          <p><strong>Name:</strong> {order.name}</p>
-          <p><strong>Phone:</strong> {order.phone}</p>
-          <p><strong>Address:</strong> {order.address}</p>
-          <p className="text-green-500">
-            Total: ¥{order.total}
+
+          <p><strong>{order.name}</strong></p>
+          <p>{order.phone}</p>
+          <p className="text-sm text-gray-400">{order.address}</p>
+
+          {/* 🔥 SHOW ITEMS */}
+          {order.items?.map((item: any, i: number) => (
+            <p key={i} className="text-sm text-gray-500">
+              {item.name} x {item.quantity}
+            </p>
+          ))}
+
+          <p className="text-green-400 font-bold mt-2">
+            ¥{order.total}
           </p>
+
         </div>
       ))}
 
