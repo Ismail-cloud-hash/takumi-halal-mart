@@ -1,51 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { supabase } from "../../supabase";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { addToCart, getCartCount } from "../lib/cart";
 
-const categoryData = [
-  {
-    name: "Fruits",
-    image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf",
-    sub: ["Apple", "Orange", "Banana"]
-  },
-  {
-    name: "Halal Meat",
-    image: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f",
-    sub: ["Chicken", "Beef", "Mutton"]
-  },
-  {
-    name: "Rice",
-    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c",
-    sub: ["Basmati", "White Rice"]
-  },
-  {
-    name: "Snacks",
-    image: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087",
-    sub: ["Chips", "Biscuits"]
-  },
-];
+export default function Admin() {
+  const router = useRouter();
 
-export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
-  const [cartCount, setCartCount] = useState(0);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [sidebar, setSidebar] = useState(false);
-  const [openCat, setOpenCat] = useState<string | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [category, setCategory] = useState("Fruits");
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchProducts();
-    updateCart();
+    checkUser();
 
-    window.addEventListener("cartUpdated", updateCart);
-    return () => window.removeEventListener("cartUpdated", updateCart);
+    // 🔥 REALTIME
+    const channel = supabase
+      .channel("live-products")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => fetchProducts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  function updateCart() {
-    setCartCount(getCartCount());
+  async function checkUser() {
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) {
+      router.push("/login");
+      return;
+    }
+
+    fetchProducts();
+    fetchOrders();
+    setLoading(false);
   }
 
   async function fetchProducts() {
@@ -53,153 +54,171 @@ export default function Home() {
     setProducts(data || []);
   }
 
+  async function fetchOrders() {
+    const { data } = await supabase.from("orders").select("*");
+    setOrders(data || []);
+  }
+
+  async function addProduct() {
+    if (!file || !name || !price || !stock) {
+      alert("Fill all fields");
+      return;
+    }
+
+    const fileName = Date.now() + file.name;
+
+    await supabase.storage.from("products").upload(fileName, file);
+
+    const { data } = supabase.storage
+      .from("products")
+      .getPublicUrl(fileName);
+
+    await supabase.from("products").insert([
+      {
+        name,
+        price: Number(price),
+        stock: Number(stock), // 🔥 STOCK
+        category,
+        image: data.publicUrl,
+      },
+    ]);
+
+    setName("");
+    setPrice("");
+    setStock("");
+    setFile(null);
+
+    fetchProducts();
+  }
+
+  async function deleteProduct(id: number) {
+    await supabase.from("products").delete().eq("id", id);
+    fetchProducts();
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  if (loading) return <p className="p-6 text-white">Loading...</p>;
+
+  // 🔥 DASHBOARD DATA
+  const totalProducts = products.length;
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((t, o) => t + o.total, 0);
+
   return (
-    <main className="bg-black text-white min-h-screen">
+    <main className="bg-black text-white min-h-screen p-4 md:p-8">
 
-      {/* 🔥 STICKY HEADER */}
-      <div className="sticky top-0 z-40 flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl text-green-400 font-bold">
+          Admin Dashboard
+        </h1>
 
-        <button onClick={() => setSidebar(true)} className="text-2xl">☰</button>
-
-        <h1 className="text-green-400 font-bold">Takumi Mart</h1>
-
-        <div className="flex gap-4 items-center">
-          <Link href="/login">Admin</Link>
-
-          <Link href="/cart" className="relative">
-            🛒
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-green-500 px-2 text-xs rounded-full">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
+        <button onClick={logout} className="bg-red-600 px-4 py-2 rounded">
+          Logout
+        </button>
       </div>
 
-      {/* 🔥 SIDEBAR WITH SUBCATEGORIES */}
-      {sidebar && (
-        <div className="fixed top-0 left-0 w-72 h-full bg-white text-black z-50 p-4 overflow-y-auto">
+      {/* 🔥 STATS CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 
-          <button onClick={() => setSidebar(false)} className="mb-4">✖</button>
-
-          {categoryData.map(cat => (
-            <div key={cat.name} className="mb-4">
-
-              <div
-                className="flex justify-between cursor-pointer"
-                onClick={() =>
-                  setOpenCat(openCat === cat.name ? null : cat.name)
-                }
-              >
-                <span className="text-green-600 font-semibold">
-                  {cat.name}
-                </span>
-                <span>▼</span>
-              </div>
-
-              {openCat === cat.name && (
-                <div className="ml-4 mt-2 text-sm">
-                  {cat.sub.map(sub => (
-                    <p
-                      key={sub}
-                      onClick={() => {
-                        setCategory(cat.name);
-                        setSidebar(false);
-                      }}
-                      className="py-1 cursor-pointer"
-                    >
-                      {sub}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-
+        <div className="bg-gray-900 p-4 rounded-xl">
+          <p className="text-gray-400 text-sm">Products</p>
+          <h2 className="text-xl font-bold">{totalProducts}</h2>
         </div>
-      )}
 
-      {/* 🔥 HERO */}
-      <div className="p-6">
-        <div className="bg-green-700 rounded-xl p-6 text-center">
-          <h2 className="text-3xl font-bold">
-            Fresh Halal Grocery 🛒
+        <div className="bg-gray-900 p-4 rounded-xl">
+          <p className="text-gray-400 text-sm">Orders</p>
+          <h2 className="text-xl font-bold">{totalOrders}</h2>
+        </div>
+
+        <div className="bg-gray-900 p-4 rounded-xl col-span-2 md:col-span-1">
+          <p className="text-gray-400 text-sm">Revenue</p>
+          <h2 className="text-xl font-bold text-green-400">
+            ¥{totalRevenue}
           </h2>
-          <p>Fast delivery & best quality</p>
         </div>
+
       </div>
 
-      {/* 🔥 CATEGORY IMAGE GRID */}
-      <div className="grid grid-cols-2 gap-4 px-6 mb-6">
+      {/* 🔥 ADD PRODUCT */}
+      <div className="bg-gray-900 p-4 rounded-xl mb-8">
 
-        {categoryData.map(cat => (
-          <div
-            key={cat.name}
-            onClick={() => setCategory(cat.name)}
-            className="relative rounded-xl overflow-hidden cursor-pointer"
-          >
-            <img src={cat.image} className="h-28 w-full object-cover"/>
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <p className="font-bold">{cat.name}</p>
+        <h2 className="mb-3 font-bold">Add Product</h2>
+
+        <input placeholder="Name" className="w-full p-2 mb-2 bg-gray-800" onChange={(e)=>setName(e.target.value)} />
+        <input placeholder="Price" type="number" className="w-full p-2 mb-2 bg-gray-800" onChange={(e)=>setPrice(e.target.value)} />
+
+        {/* 🔥 STOCK */}
+        <input
+          placeholder="Stock"
+          type="number"
+          className="w-full p-2 mb-2 bg-gray-800"
+          onChange={(e)=>setStock(e.target.value)}
+        />
+
+        <input type="file" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
+
+        <button onClick={addProduct} className="mt-3 w-full bg-green-600 py-2">
+          Add Product
+        </button>
+
+      </div>
+
+      {/* 🔥 PRODUCTS LIST */}
+      <h2 className="mb-4 font-bold">Products</h2>
+
+      <div className="space-y-3">
+
+        {products.map(p => (
+          <div key={p.id} className="bg-gray-900 p-3 rounded flex justify-between items-center">
+
+            <div>
+              <p>{p.name}</p>
+              <p className="text-green-400">¥{p.price}</p>
+
+              {/* 🔥 STOCK STATUS */}
+              <p className={`text-xs ${p.stock < 5 ? "text-red-400" : "text-gray-400"}`}>
+                Stock: {p.stock}
+              </p>
             </div>
+
+            <div className="flex gap-2">
+              <Link href={`/admin/edit/${p.id}`} className="bg-blue-600 px-2 py-1 rounded text-sm">
+                Edit
+              </Link>
+
+              <button onClick={()=>deleteProduct(p.id)} className="bg-red-600 px-2 py-1 rounded text-sm">
+                Delete
+              </button>
+            </div>
+
           </div>
         ))}
 
       </div>
 
-      {/* 🔍 SEARCH */}
-      <div className="px-6">
-        <input
-          placeholder="Search..."
-          className="w-full p-3 bg-gray-800 rounded mb-6"
-          onChange={(e)=>setSearch(e.target.value)}
-        />
-      </div>
+      {/* 🔥 ORDERS */}
+      <h2 className="mt-8 mb-4 font-bold">Orders</h2>
 
-      {/* 🛍️ PRODUCTS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-6 pb-10">
+      {orders.map(o => (
+        <div key={o.id} className="bg-gray-900 p-3 mb-2 rounded">
 
-        {products
-          .filter(p =>
-            (category==="all"||p.category===category) &&
-            p.name?.toLowerCase().includes(search.toLowerCase())
-          )
-          .map(product => (
+          <p>{o.name}</p>
 
-            <div key={product.id} className="bg-gray-900 rounded-xl overflow-hidden">
-
-              <div className="relative">
-                <img src={product.image} className="h-36 w-full object-cover"/>
-
-                {/* 🔥 BADGE */}
-                <span className="absolute top-2 left-2 bg-red-500 text-xs px-2 rounded">
-                  SALE
-                </span>
-              </div>
-
-              <div className="p-3">
-
-                <h2 className="text-sm">{product.name}</h2>
-
-                <p className="text-green-400 font-bold">
-                  ¥{product.price}
-                </p>
-
-                <button
-                  onClick={()=>addToCart(product)}
-                  className="mt-2 w-full bg-green-600 py-2 rounded text-sm"
-                >
-                  Add
-                </button>
-
-              </div>
-
-            </div>
-
+          {o.items?.map((i:any,index:number)=>(
+            <p key={index} className="text-xs text-gray-400">
+              {i.name} x {i.quantity}
+            </p>
           ))}
 
-      </div>
+          <p className="text-green-400">¥{o.total}</p>
+
+        </div>
+      ))}
 
     </main>
   );
